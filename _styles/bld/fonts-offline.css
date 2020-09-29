@@ -1,0 +1,16 @@
+@font-face {
+  font-family: "Fira Sans";
+  font-style: normal;
+  font-weight: 400;
+  src: url("fonts/FiraSans/FiraSans-Book.otf") format("opentype");
+}
+@font-face {
+  font-family: "Fira Sans";
+  font-style: normal;
+  font-weight: 700;
+  src: url("fonts/FiraSans/FiraSans-Bold.otf") format("opentype");
+}
+@font-face {
+  font-family: saxMono;
+  src: url("fonts/saxMono/saxmono.ttf") format("truetype");
+}

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html class="" lang="en">
+  <head>
+    <title>Game of Drones | Electric Eloquence</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <meta name="generator" content="Fepper Front End Prototyper (https://fepper.io)">
+    <!-- Disable cache -->
+    <meta http-equiv="cache-control" content="max-age=0">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT">
+    <meta http-equiv="pragma" content="no-cache">
+    <link rel="icon" href="favicon-gd.ico">
+    <link rel="apple-touch-icon" href="apple-touch-icon-gd.png">
+    <link rel="stylesheet" href="_styles/bld/fonts-offline.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+      window.jQuery || document.write('<script src="node_modules/jquery/dist/jquery.min.js"><\/script>');
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.4/redux.min.js"></script>
+    <script>
+      window.Redux || document.write('<script src="node_modules/redux/dist/redux.min.js"><\/script>');
+    </script>
+    <link rel="stylesheet" href="_styles/bld/game-of-drones.css">
+  </head>
+  <body class="three-section">
+    <!--googleoff: index-->
+    <div id="browser-advice" class="transparent"> This website is best viewed on up-to-date browsers. </div>
+    <!--googleon: index-->
+    <nav id="navigation" class="navigation">
+      <ul class="navigation__menu">
+        <li><a href="https://electric-eloquence.io">Electric Eloquence home</a></li>
+      </ul>
+      <div class="navigation__toggle">
+        <div class="navigation__toggle__slider"> <svg class="navigation__toggle__svg navigation__toggle__svg--x" xmlns="http://www.w3.org/2000/svg" width="24" height="17" viewBox="0 0 24 17">
+            <path d="M 3.5,0 L 20.5,17" />
+            <path d="M 3.5,17 L 20.5,0" /> </svg> <svg xmlns="http://www.w3.org/2000/svg" class="navigation__toggle__svg navigation__toggle__svg--hamburger" width="24" height="17" viewBox="0 0 24 17">
+            <rect x="0" y="0" width="24" height="1" />
+            <rect x="0" y="8" width="24" height="1" />
+            <rect x="0" y="16" width="24" height="1" /> </svg> </div>
+      </div>
+    </nav>
+    <script>
+      document.querySelectorAll('.navigation__toggle__svg').forEach((el) => {
+        el.addEventListener('click', () => {
+          document.getElementById('navigation').classList.toggle('slid');
+        });
+      });
+    </script>
+    <div class="container container--grid">
+      <section class="grid__left">
+        <div class="container container--matrix">
+          <section id="matrix" class="matrix"></section>
+          <section class="controls">
+            <div class="container container--engagement-risk"> <label class="label--engagement-risk" for="engagement-risk">Engagement risk:</label> <select class="select--engagement-risk" name="engagement-risk">
+                <option value="0">0%</option>
+                <option value="1">1%</option>
+                <option value="2">2%</option>
+                <option value="3">3%</option>
+                <option value="4">4%</option>
+                <option value="5">5%</option>
+                <option value="6">6%</option>
+                <option value="7">7%</option>
+                <option value="8">8%</option>
+                <option value="9">9%</option>
+                <option value="10">10%</option>
+                <option value="11">11%</option>
+                <option value="12">12%</option>
+                <option value="13">13%</option>
+                <option value="14">14%</option>
+                <option value="15">15%</option>
+                <option value="16">16%</option>
+                <option value="17">17%</option>
+                <option value="18">18%</option>
+                <option value="19">19%</option>
+                <option value="20">20%</option>
+                <option value="21">21%</option>
+                <option value="22">22%</option>
+                <option value="23">23%</option>
+                <option value="24">24%</option>
+                <option value="25">25%</option>
+                <option value="26">26%</option>
+                <option value="27">27%</option>
+                <option value="28">28%</option>
+                <option value="29">29%</option>
+                <option value="30">30%</option>
+                <option value="31">31%</option>
+                <option value="32">32%</option>
+                <option value="33">33%</option>
+                <option value="34">34%</option>
+                <option value="35">35%</option>
+                <option value="36">36%</option>
+                <option value="37">37%</option>
+                <option value="38">38%</option>
+                <option value="39">39%</option>
+                <option value="40">40%</option>
+                <option value="41">41%</option>
+                <option value="42">42%</option>
+                <option value="43">43%</option>
+                <option value="44">44%</option>
+                <option value="45">45%</option>
+                <option value="46">46%</option>
+                <option value="47">47%</option>
+                <option value="48">48%</option>
+                <option value="49">49%</option>
+                <option value="50" selected>50%</option>
+                <option value="51">51%</option>
+                <option value="52">52%</option>
+                <option value="53">53%</option>
+                <option value="54">54%</option>
+                <option value="55">55%</option>
+                <option value="56">56%</option>
+                <option value="57">57%</option>
+                <option value="58">58%</option>
+                <option value="59">59%</option>
+                <option value="60">60%</option>
+                <option value="61">61%</option>
+                <option value="62">62%</option>
+                <option value="63">63%</option>
+                <option value="64">64%</option>
+                <option value="65">65%</option>
+                <option value="66">66%</option>
+                <option value="67">67%</option>
+                <option value="68">68%</option>
+                <option value="69">69%</option>
+                <option value="70">70%</option>
+                <option value="71">71%</option>
+                <option value="72">72%</option>
+                <option value="73">73%</option>
+                <option value="74">74%</option>
+                <option value="75">75%</option>
+                <option value="76">76%</option>
+                <option value="77">77%</option>
+                <option value="78">78%</option>
+                <option value="79">79%</option>
+                <option value="80">80%</option>
+                <option value="81">81%</option>
+                <option value="82">82%</option>
+                <option value="83">83%</option>
+                <option value="84">84%</option>
+                <option value="85">85%</option>
+                <option value="86">86%</option>
+                <option value="87">87%</option>
+                <option value="88">88%</option>
+                <option value="89">89%</option>
+                <option value="90">90%</option>
+                <option value="91">91%</option>
+                <option value="92">92%</option>
+                <option value="93">93%</option>
+                <option value="94">94%</option>
+                <option value="95">95%</option>
+                <option value="96">96%</option>
+                <option value="97">97%</option>
+                <option value="98">98%</option>
+                <option value="99">99%</option>
+                <option value="100">100%</option>
+              </select> <span class="display--engagement-risk hidden"></span> </div>
+            <div class="container container--buttons"> <button class="button button--run-pause button--run" type="button">
+                <div>&nbsp;</div>
+              </button> <button class="button button--step" type="button">
+                <div class="button--step__left"></div>
+                <div class="button--step__right"></div>
+              </button> <button class="button button--rerun" type="button"> <svg xmlns="http://www.w3.org/2000/svg" class="button--rerun__svg" viewBox="0 0 120 146">
+                  <path d=" M 105 85 A 45 45 0 1 1 60 40" stroke="black" stroke-width="20" fill="transparent" />
+                  <polygon points="60,0 96,46 60,82" /> </svg> </button> </div>
+          </section>
+        </div>
+        <div class="container container--console">
+          <section id="console" class="console">
+            <div class="console__messages"> </div>
+          </section>
+        </div>
+      </section>
+      <section class="grid__stats">
+        <table class="stats">
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Pts</th>
+              <th>Memory</th>
+            </tr>
+          </thead>
+          <tbody id="stats__body" class="stats__body"> </tbody>
+        </table>
+      </section>
+      <section class="grid__article">
+        <article>
+          <h1>Game of Drones</h1>
+          <h2>The Donald vs. Karens</h2>
+          <div class="container container--definition"> <a href="https://www.merriam-webster.com/dictionary/drone" target="_blank">
+              <h3 class="lookup">drone</h3>
+            </a>
+            <h4 class="part-of-speech">noun</h4>
+            <h5 class="pronunciation">\ ˈdrōn \</h5>
+            <blockquote class="definition" cite="https://www.merriam-webster.com/dictionary/drone">one that lives on the labors of others : PARASITE</blockquote>
+          </div>
+          <div class="container container--article-body">
+            <p>Game of Drones is a computer simulation of the Prisoner's Dilemma, perhaps the most studied game in Game Theory. The Prisoner's Dilemma presents two players with the decision (dilemma) to cooperate with or defect against the other. (The original premise is that they are prisoners given the option of testifying against the other in exchange for freedom/reduced prison time.) Their decisions are unknown to the other until the time of play. The rewards and penalties in this version are as follows:</p>
+            <ul>
+              <li>Both cooperate: both gain 1 point</li>
+              <li>One cooperates, one defects: cooperator loses 1 point, defector gains 2 points</li>
+              <li>Both defect: neither gains nor loses anything</li>
+            </ul>
+            <p>When the Prisoner's Dilemma is to be played multiple times with no knowledge of how many times, the Tit-for-Tat strategy is widely considered to be the most robust. This strategy is remarkably simple:</p>
+            <ul>
+              <li>Be nice: cooperate by default; when engaging a stranger, cooperate</li>
+              <li>Be retaliating: if the other player defects, defect on the next engagement with that player</li>
+              <li>Be forgiving: if the formerly defecting player cooperates, cooperate on the next engagement with that player</li>
+            </ul>
+            <p>There are four teams of players in Game of Drones. Each player starts the game with 10 points. On each turn, the player moves (or stays put) on a matrix and when encountering a neighbor, engages in the Prisoner's Dilemma. The team strategies are as follows:</p>
+            <ul>
+              <li>Snowflakes: play Tit-for-Tat</li>
+              <li>Karens: always defect</li>
+              <li>Magas: always cooperate with their own and with the Donald, defect against everyone else</li>
+              <li>the Donald: always defect</li>
+            </ul>
+            <p>Game of Drones adds some aspects beyond the Prisoner's Dilemma: engagement risk and death. Engagement risk threatens a loss of 1 point per player during engagements. The probability is determined by a user-selected percentage figure. Death occurs when points go to 0.</p>
+            <p>Snowflakes are at a disadvantage early on, as their niceness leads to a much greater initial point loss than for other teams. To give Snowflakes a fighting chance, engagement risk is introduced after all Snowflakes have acquired a memory of how the other players played.</p>
+            <p>Karens start out immune to engagement risk. They only suffer risk after all cooperators have died, cooperators being Snowflakes and Magas. This takes the shape of an inverse (perverse) karma where those who produce die so that those who only consume may live.</p>
+            <p>Magas are alone in incurring ongoing loss to defection. They tend to die off quickly, even with zero engagement risk.</p>
+            <p>Setting engagement risk low may result in Snowflakes never dying. The simulation will run until it reaches its kill screen.</p>
+            <p>Setting engagement risk high will almost certainly kill all Snowflakes. After the cooperators have died, the drones' points will wilt away until one or no winner emerges.</p>
+          </div>
+        </article>
+      </section>
+    </div>
+    <footer class="footer"> This page was created in <a href="https://fepper.io" target="_blank">Fepper</a>.
+      Its frontend application state is managed by <a href="https://github.com/electric-eloquence/requerio" target="_blank">Requerio</a>.
+      It has no backend application state. </footer>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('browser-advice').className = 'fade--in';
+      });
+    </script>
+    <script src="_scripts/src/app/index.js" type="module"></script>
+    <script src="_scripts/src/variables.styl" type="text/javascript"></script>
+    <script src="_scripts/src/fepper-obj.js"></script>
+    <script>
+      if (navigator.appVersion.includes('Win')) {
+        document.body.classList.add('windows');
+      }
+      // Older browsers should have failed at this point. Newer browser will add the es2016 class correctly.
+      document.documentElement.classList.add('es2016');
+    </script>
+  </body>
+</html>
