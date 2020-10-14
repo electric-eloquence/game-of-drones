@@ -1031,6 +1031,7 @@ export default class Simulation {
     this.$orgs['.console__messages'].dispatchAction('html', '');
 
     if (this.$orgs['.matrix__filler']) {
+      this.$orgs['.matrix__filler'].dispatchAction('attr', {class: 'matrix__filler', style: null});
       this.$orgs['.matrix__filler'].dispatchAction('detach');
     }
 
