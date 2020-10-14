@@ -14,20 +14,18 @@
     <link rel="icon" href="favicon-gd.ico">
     <link rel="apple-touch-icon" href="apple-touch-icon-gd.png">
     <link rel="stylesheet" href="_styles/bld/fonts-offline.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="_styles/bld/game-of-drones.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
       window.jQuery || document.write('<script src="node_modules/jquery/dist/jquery.min.js"><\/script>');
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.4/redux.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.5/redux.min.js"></script>
     <script>
       window.Redux || document.write('<script src="node_modules/redux/dist/redux.min.js"><\/script>');
     </script>
-    <link rel="stylesheet" href="_styles/bld/game-of-drones.css">
+    <script src="_scripts/src/variables.styl" type="text/javascript"></script>
   </head>
-  <body class="three-section">
-    <!--googleoff: index-->
-    <div id="browser-advice" class="transparent"> This website is best viewed on up-to-date browsers. </div>
-    <!--googleon: index-->
+  <body class="three-section transition-slow">
     <nav id="navigation" class="navigation">
       <ul class="navigation__menu">
         <li><a href="https://electric-eloquence.io">Electric Eloquence home</a></li>
@@ -53,7 +51,7 @@
         <div class="container container--matrix">
           <section id="matrix" class="matrix"></section>
           <section class="controls">
-            <div class="container container--engagement-risk"> <label class="label--engagement-risk" for="engagement-risk">Engagement risk:</label> <select class="select--engagement-risk" name="engagement-risk">
+            <div class="container container--engagement-risk"> <label class="label--engagement-risk" for="engagement-risk-slider">Engagement risk:</label> <select class="select--engagement-risk" name="engagement-risk">
                 <option value="0">0%</option>
                 <option value="1">1%</option>
                 <option value="2">2%</option>
@@ -155,14 +153,18 @@
                 <option value="98">98%</option>
                 <option value="99">99%</option>
                 <option value="100">100%</option>
-              </select> <span class="display--engagement-risk hidden"></span> </div>
+              </select> <span class="display--engagement-risk hidden">50</span> </div>
+            <div class="container container--sliders">
+              <div class="container container--slider container--slider--engagement-risk"> <input type="range" class="slider--engagement-risk" name="engagement-risk-slider" min="0" max="100" value="50"> </div> <label class="label--speed" for="speed-slider">Speed:</label>
+              <div class="container container--slider container--slider--speed"> <input type="range" class="slider--speed" name="speed" min="0" max="49" value="0"> </div>
+            </div>
             <div class="container container--buttons"> <button class="button button--run-pause button--run" type="button">
                 <div>&nbsp;</div>
               </button> <button class="button button--step" type="button">
                 <div class="button--step__left"></div>
                 <div class="button--step__right"></div>
-              </button> <button class="button button--rerun" type="button"> <svg xmlns="http://www.w3.org/2000/svg" class="button--rerun__svg" viewBox="0 0 120 146">
-                  <path d=" M 105 85 A 45 45 0 1 1 60 40" stroke="black" stroke-width="20" fill="transparent" />
+              </button> <button class="button button--rerun" type="button" disabled> <svg xmlns="http://www.w3.org/2000/svg" class="button--rerun__svg" viewBox="0 0 120 146">
+                  <path d=" M 105 85 A 45 45 0 1 1 60 40" stroke-width="20" fill="transparent" />
                   <polygon points="60,0 96,46 60,82" /> </svg> </button> </div>
           </section>
         </div>
@@ -229,18 +231,27 @@
       Its frontend application state is managed by <a href="https://github.com/electric-eloquence/requerio" target="_blank">Requerio</a>.
       It has no backend application state. </footer>
     <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        document.getElementById('browser-advice').className = 'fade--in';
-      });
+      // Adding browser advice via JavaScript so it isn't picked up by web crawlers without some serious effort.
+      const browserAdvice = document.createElement('div');
+      browserAdvice.id = 'browser-advice';
+      browserAdvice.className = 'browser-advice';
+      browserAdvice.innerHTML = '<!--googleoff: index-->This website is best viewed on up-to-date browsers.<!--googleon: index-->';
+      document.body.insertBefore(browserAdvice, document.getElementById('navigation'));
     </script>
     <script src="_scripts/src/app/index.js" type="module"></script>
-    <script src="_scripts/src/variables.styl" type="text/javascript"></script>
     <script>
       if (navigator.appVersion.includes('Win')) {
         document.body.classList.add('windows');
       }
-      // Older browsers should have failed at this point. Newer browser will add the es2016 class correctly.
+      // Out-of-date browsers should have failed at this point. Up-to-date browsers will add the es2016 class correctly
+      // and remove the browser-advice.
       document.documentElement.classList.add('es2016');
+      document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+          document.getElementById('browser-advice').remove();
+        }
+      );
     </script>
   </body>
 </html>

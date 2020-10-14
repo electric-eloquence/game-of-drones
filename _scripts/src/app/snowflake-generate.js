@@ -1,27 +1,23 @@
-export default function (color) {
-  const MAX_RECURSION_LEVEL = 4;
-  const randomValPerRecursion = new Uint8Array(MAX_RECURSION_LEVEL + 1);
+export default function (color, width) {
   const canvasPart = document.createElement('canvas');
   const ctx = canvasPart.getContext('2d');
-  const hypotenuse = 222;
+  const hypotenuse = width / 2;
   const sqrt3 = Math.sqrt(3);
   const xRight = hypotenuse / 2;
   const yBottom = xRight * sqrt3;
-  canvasPart.width = 111;
-  canvasPart.height = 192;
+  canvasPart.width = width / 4;
+  canvasPart.height = Math.round(canvasPart.width * sqrt3);
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
 
-  crypto.getRandomValues(randomValPerRecursion);
-
   function drawHex(xOffset, yOffset, sideLength) {
     ctx.beginPath();
-    ctx.moveTo(xOffset, 0.5 * sideLength + yOffset);
-    ctx.lineTo(0.5 * sideLength * sqrt3 + xOffset, yOffset);
-    ctx.lineTo(sideLength * sqrt3 + xOffset,  0.5 * sideLength + yOffset);
-    ctx.lineTo(sideLength * sqrt3 + xOffset, 1.5 * sideLength + yOffset);
-    ctx.lineTo(0.5 * sideLength * sqrt3 + xOffset, 2 * sideLength + yOffset);
-    ctx.lineTo(xOffset, 1.5 * sideLength + yOffset);
+    ctx.moveTo(xOffset, sideLength * 0.5 + yOffset);
+    ctx.lineTo(sideLength * sqrt3 * 0.5 + xOffset, yOffset);
+    ctx.lineTo(sideLength * sqrt3 + xOffset,  sideLength * 0.5 + yOffset);
+    ctx.lineTo(sideLength * sqrt3 + xOffset, sideLength * 1.5 + yOffset);
+    ctx.lineTo(sideLength * sqrt3 * 0.5 + xOffset, sideLength * 2 + yOffset);
+    ctx.lineTo(xOffset, sideLength * 1.5 + yOffset);
     ctx.closePath();
     ctx.stroke();
     ctx.fill();
@@ -50,7 +46,8 @@ export default function (color) {
   }
 
   function drawHexes(xAxisStart, yAxisStart, angle, hexWidthHalf, sideLength, maxIterations, recursionLevel = 0) {
-    if (recursionLevel > MAX_RECURSION_LEVEL) {
+    // Try to limit recursion so hexes stay at or above canvas pixel size.
+    if (hexWidthHalf < 0.25) {
       return;
     }
 
@@ -62,67 +59,69 @@ export default function (color) {
     let recursionLevelOffset = 0;
 
     if (angle === 150) {
-      xAxis -= 1 * hexWidthHalf;
+      xAxis -= hexWidthHalf * 1;
       xOffset = xAxis;
-      xOffset -= 1 * hexWidthHalf;
-      yAxis -= 1.5 * sideLength;
+      xOffset -= hexWidthHalf * 1;
+      yAxis -= sideLength * 1.5;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle + 60;
     }
     if (angle === 210) {
-      xAxis += 1 * hexWidthHalf;
+      xAxis += hexWidthHalf * 1;
       xOffset = xAxis;
-      xOffset -= 1 * hexWidthHalf;
-      yAxis -= 1.5 * sideLength;
+      xOffset -= hexWidthHalf * 1;
+      yAxis -= sideLength * 1.5;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle + 60;
     }
     if (angle === 270) {
-      xAxis += 2 * hexWidthHalf;
+      xAxis += hexWidthHalf * 2;
       xOffset = xAxis;
-      xOffset -= 1 * hexWidthHalf;
+      xOffset -= hexWidthHalf * 1;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle + 60;
     }
     if (angle === 330) {
-      xAxis += 1 * hexWidthHalf;
+      xAxis += hexWidthHalf * 1;
       xOffset = xAxis;
-      xOffset -= 1 * hexWidthHalf;
-      yAxis += 1.5 * sideLength;
+      xOffset -= hexWidthHalf * 1;
+      yAxis += sideLength * 1.5;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle - 300;
     }
     if (angle === 30) {
-      xAxis -= 1 * hexWidthHalf;
+      xAxis -= hexWidthHalf * 1;
       xOffset = xAxis;
-      xOffset -= 1 * hexWidthHalf;
-      yAxis += 1.5 * sideLength;
+      xOffset -= hexWidthHalf * 1;
+      yAxis += sideLength * 1.5;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle + 60;
     }
-    if (angle === 90) { // Doesn't go this far now but here in case it does in the future.
-      xAxis -= 2 * hexWidthHalf;
+    if (angle === 90) {
+      xAxis -= hexWidthHalf * 2;
       xOffset = xAxis;
-      xOffset += 1 * hexWidthHalf;
+      xOffset += hexWidthHalf * 1;
       yOffset = yAxis;
-      yOffset -= 1 * sideLength;
+      yOffset -= sideLength * 1;
       angleNew = angle + 60;
     }
 
+    const r = Math.random();
     let iterations;
 
-    if (recursionLevel === 0) {
-      iterations = 0.875 * maxIterations;
-      iterations += 0.25 * (randomValPerRecursion[recursionLevel] / 256) * maxIterations;
+
+    if (recursionLevel === 1 || recursionLevel === 2) {
+      iterations = maxIterations * 0.5;
+      iterations += r * maxIterations * 0.5;
     }
-    if (recursionLevel > 0) {
-      iterations = 0.5 * maxIterations;
-      iterations += 0.5 * (randomValPerRecursion[recursionLevel] / 256) * maxIterations;
+    else {
+      iterations = maxIterations * 0.75;
+      iterations += r * maxIterations * 0.25;
     }
 
     iterations = Math.round(iterations);
@@ -132,40 +131,55 @@ export default function (color) {
 
     for (let i = 0; i < iterations; i++) {
       if (angle === 150) {
-        xAxis += 1 * hexWidthHalf;
-        xOffset += 1 * hexWidthHalf;
-        yAxis += 1.5 * sideLength;
-        yOffset += 1.5 * sideLength;
+        xAxis += hexWidthHalf * 1;
+        xOffset += hexWidthHalf * 1;
+        yAxis += sideLength * 1.5;
+        yOffset += sideLength * 1.5;
       }
       if (angle === 210) {
-        xAxis -= 1 * hexWidthHalf;
-        xOffset -= 1 * hexWidthHalf;
-        yAxis += 1.5 * sideLength;
-        yOffset += 1.5 * sideLength;
+        xAxis -= hexWidthHalf * 1;
+        xOffset -= hexWidthHalf * 1;
+        yAxis += sideLength * 1.5;
+        yOffset += sideLength * 1.5;
       }
       if (angle === 270) {
-        xAxis -= 2 * hexWidthHalf;
-        xOffset -= 2 * hexWidthHalf;
+        xAxis -= hexWidthHalf * 2;
+        xOffset -= hexWidthHalf * 2;
       }
       if (angle === 330) {
-        xAxis -= 1 * hexWidthHalf;
-        xOffset -= 1 * hexWidthHalf;
-        yAxis -= 1.5 * sideLength;
-        yOffset -= 1.5 * sideLength;
+        xAxis -= hexWidthHalf * 1;
+        xOffset -= hexWidthHalf * 1;
+        yAxis -= sideLength * 1.5;
+        yOffset -= sideLength * 1.5;
       }
       if (angle === 30) {
-        xAxis += 1 * hexWidthHalf;
-        xOffset += 1 * hexWidthHalf;
-        yAxis -= 1.5 * sideLength;
-        yOffset -= 1.5 * sideLength;
+        xAxis += hexWidthHalf * 1;
+        xOffset += hexWidthHalf * 1;
+        yAxis -= sideLength * 1.5;
+        yOffset -= sideLength * 1.5;
       }
-      if (angle === 90) { // Doesn't go this far now but here in case it does in the future.
-        xAxis += 2 * hexWidthHalf;
-        xOffset += 2 * hexWidthHalf;
+      if (angle === 90) {
+        xAxis += hexWidthHalf * 2;
+        xOffset += hexWidthHalf * 2;
       }
 
-      ctx.fillRect(xAxis, yAxis, 1, 1); // For debugging.
-      drawHex(xOffset, yOffset, sideLength);
+      // FOR DEBUGGING.
+      // ctx.fillStyle = '#ff0000';
+      // ctx.fillRect(xAxis, yAxis, 1, 1);
+      // ctx.fillStyle = color;
+
+      if (
+        recursionLevel === 0 ||
+        (
+          (xOffset >= 0 && xOffset <= canvasPart.width) &&
+          (yOffset >= 0 && yOffset <= canvasPart.height)
+        )
+      ) {
+        drawHex(xOffset, yOffset, sideLength);
+      }
+      else {
+        break;
+      }
 
       let divisor = getDivisor(i, iterations);
       let x;
@@ -184,22 +198,26 @@ export default function (color) {
       }
 
       // Make it less likely to branch at the very ends of the largest branches.
-      if (
-        recursionLevel === 0 &&
-        (divisor === 4 || divisor === 8) &&
-        (
-          (i === iterations - 2 && (randomValPerIteration[i] < 256 / 3)) ||
-          (i === iterations - 1 && (randomValPerIteration[i] < 512 / 3))
-        )
-      ) {
-        divisor = null;
+      if (recursionLevel === 0) {
+        if (
+          (divisor === 4 && i === iterations - 1) ||
+          (
+            (divisor === 4 || divisor === 8) &&
+            (
+              (i === iterations - 2 && (randomValPerIteration[i] < 256 / 3)) ||
+              (i === iterations - 1 && (randomValPerIteration[i] < 512 / 3))
+            )
+          )
+        ) {
+          divisor = null;
+        }
       }
 
       if (divisor) {
         // FOR DEBUGGING.
         // ctx.fillStyle = '#ff0000';
         // ctx.fillRect(xAxis, yAxis, 1, 1);
-        // ctx.fillStyle = window.snowflake_color;
+        // ctx.fillStyle = color;
 
         let hexWidthHalfNew = hexWidthHalf / divisor;
         let sideLengthNew = sideLength / divisor;
@@ -228,12 +246,12 @@ export default function (color) {
     const hexWidthHalf = hexWidth / 2;
     let xOffset = -hexWidthHalf;
     let yOffset = -sideLength;
-    let yLowest = 2 * sideLength + yOffset;
+    let yLowest = sideLength * 2 + yOffset;
     let maxIterations = 0;
 
     while (yLowest < yBottom) {
-      yOffset += 1.5 * sideLength;
-      yLowest = 2 * sideLength + yOffset;
+      yOffset += sideLength * 1.5;
+      yLowest = sideLength * 2 + yOffset;
 
       maxIterations++;
     }
@@ -250,18 +268,18 @@ export default function (color) {
 
   // MAIN EXECUTION.
 
-  draw(0, 0, 16, 150);
+  draw(0, 0, canvasPart.height / 12, 150);
 
   const canvasWhole = document.createElement('canvas');
-  canvasWhole.width = 444;
-  canvasWhole.height = 384;
+  canvasWhole.width = width;
+  canvasWhole.height = canvasPart.height * 2;
 
   const ctx1 = canvasWhole.getContext('2d');
-  ctx1.translate(222, 192);
+  ctx1.translate(hypotenuse, canvasPart.height);
   ctx1.drawImage(canvasPart, 0, 0);
 
   for (let i = 0; i < 5; i++) {
-    ctx1.rotate(60 * Math.PI / 180);
+    ctx1.rotate(Math.PI * 60 / 180);
     ctx1.drawImage(canvasPart, 0, 0);
   }
 
@@ -269,7 +287,7 @@ export default function (color) {
   ctx1.drawImage(canvasPart, 0, 0);
 
   for (let i = 0; i < 5; i++) {
-    ctx1.rotate(60 * Math.PI / 180);
+    ctx1.rotate(Math.PI * 60 / 180);
     ctx1.drawImage(canvasPart, 0, 0);
   }
 

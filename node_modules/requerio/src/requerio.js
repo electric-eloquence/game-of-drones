@@ -49,7 +49,11 @@ class Requerio {
     }
 
     organismsIncept($organisms, this.$);
-    Object.assign(this.$orgs, $organisms);
+
+    for (const i in $organisms) {
+      this.$orgs[i] = $organisms[i];
+    }
+
     postInception(this);
 
     const reducer = reducerGet(this.$orgs, this.Redux, this.customReducer);

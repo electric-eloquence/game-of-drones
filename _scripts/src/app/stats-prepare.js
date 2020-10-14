@@ -9,5 +9,6 @@ for (let i = 0; i < window.population; i++) {
 `;
 
   statsRow.setAttribute('data-id', '.player--' + i);
+  statsRow.setAttribute('data-idx', i);
   statsBody.appendChild(statsRow);
 }

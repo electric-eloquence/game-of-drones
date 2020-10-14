@@ -12,9 +12,9 @@ const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 const $ = global.$ = cheerio.load(html);
 
 const $organisms = {
-  'window': null,
-  'html': null,
-  'body': null,
+  window: null,
+  html: null,
+  body: null,
   '#main': null,
   '.main__section--0': null,
   '.main__section--1': null

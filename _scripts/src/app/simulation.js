@@ -1,39 +1,37 @@
 import snowflakeGenerate from './snowflake-generate.js';
 
-const MAX_POINTS = 255;
+const MAX_POINTS = 127;
 const play = new Event('play');
-const pts = 10;
+const ptsInitial = 10;
 
 export default class Simulation {
-  constructor(requerio, matrixWidth, matrixHeight, population, renderInterval, turnInterval) {
+  constructor(requerio, config) {
     this.requerio = requerio;
     this.$orgs = requerio.$orgs;
-    this.matrixWidth = matrixWidth;
-    this.matrixHeight = matrixHeight;
-    this.population = population;
-    this.populationAlive = population;
-    this.renderInterval = renderInterval;
-    this.turnInterval = turnInterval;
+    this.matrixWidth = config.matrixWidth;
+    this.matrixHeight = config.matrixHeight;
+    this.playerPadding = config.playerPadding;
+    this.playerSize = config.playerSize;
+    this.population = config.population;
+    this.renderInterval = config.renderInterval;
+    this.turnInterval = config.turnInterval;
+    this.snowflakeColor = config.snowflakeColor;
 
-    this.cooperatorAlive = true;
+    this.endingInterval = this.turnInterval / 2; // Must be longer than this.renderInterval to process winner data.
     this.intervalId = null;
-    this.matrix = [];
-    this.maxPointsReached = false;
-    this.playerPadding = window.player_padding;
-    this.playerSize = window.player_size;
+    this.players = [];
+    this.randomValuesStore = [];
+    this.randomValues = [];
+    this.renderIntervalAdjusted = this.renderInterval;
+    this.renderMultiplier = this.turnInterval / this.renderInterval;
     this.risk = null;
-    this.riskIntroduced = false;
+    this.semaphoreArray = [];
+    this.semaphoreLocked = false;
+    this.speed = null;
     this.teamKeys = ['karen', 'maga', 'snowflake'];
     this.teams = {};
+    this.turnIntervalAdjusted = this.turnInterval;
     this.vonNeumannKeys = [{x: -1, y: 0}, {x: 0, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}];
-
-    for (let x = 0; x < this.matrixWidth; x++) {
-      this.matrix[x] = [];
-
-      for (let y = 0; y < this.matrixHeight; y++) {
-        this.matrix[x][y] = null;
-      }
-    }
   }
 
   /*** @private */
@@ -42,18 +40,16 @@ export default class Simulation {
       const buttonRunPauseState = this.$orgs['.button--run-pause'].getState();
 
       if (buttonRunPauseState.classArray.includes('button--run')) {
-        const selectEngagementRisk = this.$orgs['.select--engagement-risk'];
-        const selectEngagementRiskState = selectEngagementRisk.getState();
-
         if (this.risk === null) {
           this.$orgs['.select--engagement-risk'].dispatchAction('addClass', 'hidden');
           this.$orgs['.display--engagement-risk'].dispatchAction('removeClass', 'hidden');
+          this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: '0'});
+
+          const selectEngagementRiskState = this.$orgs['.select--engagement-risk'].getState();
+          this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
         }
 
-        this.risk = 0.01 * parseInt(selectEngagementRiskState.value || selectEngagementRisk.val(), 10);
-
         this.run();
-        this.$orgs['.display--engagement-risk'].dispatchAction('text', `${100 * this.risk}%`)
         this.$orgs['.button--run-pause']
           .dispatchAction('removeClass', 'button--run')
           .dispatchAction('addClass', 'button--pause');
@@ -66,70 +62,100 @@ export default class Simulation {
           .dispatchAction('addClass', 'button--run');
         this.$orgs['.button--step'].dispatchAction('prop', {disabled: false});
       }
+
+      this.$orgs['.button--rerun'].dispatchAction('prop', {disabled: false});
     });
     this.$orgs['.button--run-pause'].on('mouseleave', () => {
-      this.$orgs['.button--run-pause'].dispatchAction('blur');
-    });
-    this.$orgs['.button--run-pause'].on('touchend', () => {
       this.$orgs['.button--run-pause'].dispatchAction('blur');
     });
     this.$orgs['.button--step'].on('click', () => {
       const buttonStepState = this.$orgs['.button--step'].getState();
 
-      if (buttonStepState.props.disabled) {
+      if (buttonStepState.prop.disabled) {
         return;
       }
-
-      const selectEngagementRisk = this.$orgs['.select--engagement-risk'];
-      const selectEngagementRiskState = selectEngagementRisk.getState();
 
       if (this.risk === null) {
         this.$orgs['.select--engagement-risk'].dispatchAction('addClass', 'hidden');
         this.$orgs['.display--engagement-risk'].dispatchAction('removeClass', 'hidden');
+        this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: '0'});
+
+        const selectEngagementRiskState = this.$orgs['.select--engagement-risk'].getState();
+        this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
       }
 
-      this.risk = 0.01 * parseInt(selectEngagementRiskState.value || selectEngagementRisk.val(), 10);
-
       this.turn();
-      this.$orgs['.display--engagement-risk'].dispatchAction('text', `${100 * this.risk}%`)
+      this.$orgs['.button--rerun'].dispatchAction('prop', {disabled: false});
     });
     this.$orgs['.button--step'].on('mouseleave', () => {
       this.$orgs['.button--step'].dispatchAction('blur');
     });
-    this.$orgs['.button--step'].on('touchend', () => {
-      this.$orgs['.button--step'].dispatchAction('blur');
-    });
     this.$orgs['.button--rerun'].on('click', () => {
-      location.reload();
+      this.rerun();
     });
     this.$orgs['.button--rerun'].on('mouseleave', () => {
-      this.$orgs['.button--rerun'].dispatchAction('blur');
-    });
-    this.$orgs['.button--rerun'].on('touchend', () => {
       this.$orgs['.button--rerun'].dispatchAction('blur');
     });
 
     const simulationInst = this;
 
     this.$orgs['.select--engagement-risk'].on('change', function () {
-      simulationInst.$orgs['.select--engagement-risk']
-        .dispatchAction('val', this.value)
-        .dispatchAction('blur');
+      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', this.value)
+      simulationInst.$orgs['.slider--engagement-risk'].dispatchAction('val', this.value);
+      document.cookie = `risk=${this.value};sameSite=strict`;
+    });
+    this.$orgs['.slider--engagement-risk'].on('change', function () {
+      simulationInst.$orgs['.select--engagement-risk'].dispatchAction('val', this.value);
+      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', this.value)
+      document.cookie = `risk=${this.value};sameSite=strict`;
+    });
+    this.$orgs['.slider--speed'].on('change', function () {
+      simulationInst.$orgs['.slider--speed'].dispatchAction('val', this.value);
+      document.cookie = `speed=${this.value};sameSite=strict`;
     });
     this.$orgs['.stats__player'].on('mouseenter', function () {
-      const playerId = this.dataset.id;
+      const playerId = '.player--' + this.dataset.idx;
 
       simulationInst.$orgs[playerId].dispatchAction('addClass', 'focused');
     });
     this.$orgs['.stats__player'].on('mouseleave', function () {
-      const playerId = this.dataset.id;
+      const playerId = '.player--' + this.dataset.idx;
 
       simulationInst.$orgs[playerId].dispatchAction('removeClass', 'focused');
     });
+
+    let riskCookie;
+
+    try {
+      riskCookie = document.cookie.split('; ')
+        .find(row => row.startsWith('risk='))
+        .split('=')[1];
+    }
+    catch {}
+
+    if (riskCookie) {
+      // If the cookie is set, update the select and slider but leave this.risk set to null when initializing the page.
+      this.$orgs['.select--engagement-risk'].dispatchAction('val', riskCookie);
+      this.$orgs['.display--engagement-risk'].dispatchAction('text', riskCookie)
+      this.$orgs['.slider--engagement-risk'].dispatchAction('val', riskCookie);
+    }
+
+    let speedCookie;
+
+    try {
+      speedCookie = document.cookie.split('; ')
+        .find(row => row.startsWith('speed='))
+        .split('=')[1];
+    }
+    catch {}
+
+    if (speedCookie) {
+      this.$orgs['.slider--speed'].dispatchAction('val', speedCookie);
+    }
   }
 
   /*** @private */
-  findVonNeumannNeighbors(posX, posY) {
+  findVonNeumannNeighbors(posX, posY, matrixData) {
     const vonNeumannNeighbors = Object.create(null);
 
     for (let x = -1; x < 2; x++) {
@@ -144,7 +170,7 @@ export default class Simulation {
 
       if (x === 1) {
         // Skip if posX is on right edge.
-        if (this.populationAlive > 4) {
+        if (matrixData.populationAlive > 4) {
           if (posX === this.matrixWidth - 1) {
             continue;
           }
@@ -173,7 +199,7 @@ export default class Simulation {
 
           // Shrink playable area if there are 4 or fewer players.
           if (y === 1) {
-            if (this.populationAlive <= 4) {
+            if (matrixData.populationAlive <= 4) {
               if (posY >= this.matrixHeight - 2) {
                 continue;
               }
@@ -181,11 +207,25 @@ export default class Simulation {
           }
         }
 
-        vonNeumannNeighbors[x][y] = this.matrix[posX + x][posY + y];
+        vonNeumannNeighbors[x][y] = matrixData.matrix[posX + x][posY + y];
       }
     }
 
     return vonNeumannNeighbors;
+  }
+
+  /*** @private */
+  getRandomValue() {
+    if (!this.randomValues.length) {
+      const randomValuesTyped = new Uint8Array(65536); // Maximum size data store allowed by crypto.getRandomValues().
+
+      crypto.getRandomValues(randomValuesTyped);
+
+      this.randomValues = Array.from(randomValuesTyped);
+      this.randomValuesStore = this.randomValuesStore.concat(this.randomValues);
+    }
+
+    return this.randomValues.pop() / 256;
   }
 
   /*** @private */
@@ -208,10 +248,10 @@ export default class Simulation {
   }
 
   /*** @private */
-  playPlayerB(playerB) {
+  playPlayerB(playerB, matrixData) {
     const playerBState = playerB.getState();
     const playerBData = playerBState.data;
-    const vonNeumannNeighbors = this.findVonNeumannNeighbors(playerBData.posX, playerBData.posY);
+    const vonNeumannNeighbors = this.findVonNeumannNeighbors(playerBData.posX, playerBData.posY, matrixData);
 
     this.vonNeumannKeys.forEach((key) => {
       const vonNeumannNeighbor = vonNeumannNeighbors[key.x][key.y];
@@ -219,8 +259,8 @@ export default class Simulation {
       if (vonNeumannNeighbor === playerBData.inPlayWith) {
         const playerBTransform = this.getStyleFromAttrib(playerBState, 'transform');
         const playerBTransformParsed = this.parseTransformTranslate(playerBTransform);
-        const playerBTranslateXOffset = parseInt(playerBTransformParsed[0], 10) + (key.x * this.playerPadding);
-        const playerBTranslateYOffset = parseInt(playerBTransformParsed[1], 10) + (key.y * this.playerPadding);
+        const playerBTranslateXOffset = parseFloat(playerBTransformParsed[0]) + (key.x * this.playerPadding);
+        const playerBTranslateYOffset = parseFloat(playerBTransformParsed[1]) + (key.y * this.playerPadding);
 
         playerB.dispatchAction(
           'css',
@@ -229,6 +269,8 @@ export default class Simulation {
       }
     });
   }
+
+  /* END PRIVATE METHODS. BEGIN PUBLIC METHODS */
 
   extinguish() {
     this.$orgs['.console__messages'].dispatchAction(
@@ -254,7 +296,7 @@ export default class Simulation {
             setTimeout(() => {
               this.$orgs['.matrix__cover'].dispatchAction('addClass', 'reveal');
               resolve();
-            }, this.turnInterval); // Using this.turnInterval and not this.renderInterval because this.win() does.
+            }, this.endingInterval);
           });
       });
   }
@@ -265,23 +307,31 @@ export default class Simulation {
       {width: (this.playerSize * this.matrixWidth + 2) + 'px', height: (this.playerSize * this.matrixHeight + 2) + 'px'}
     );
 
-    this.teamKeys.forEach((team) => {
-      this.teams[team] = {
-        playerIds: [],
-        subPopulation: 0
-      };
-    });
+    const matrix = [];
+
+    for (let x = 0; x < this.matrixWidth; x++) {
+      matrix[x] = [];
+
+      for (let y = 0; y < this.matrixHeight; y++) {
+        matrix[x][y] = null;
+      }
+    }
 
     for (let i = 0; i < this.population; i++) {
       const player = this.$orgs['.player--' + i];
       let playerData = {posX: null, posY: null};
 
-      while (playerData.posX === null || playerData.posY === null) {
-        const posX = Math.floor(Math.random() * this.matrixWidth);
-        const posY = Math.floor(Math.random() * this.matrixHeight);
+      player
+        .dispatchAction('removeClass', 'dead')
+        .dispatchAction('data', {idx: i, memoryOfLastPlays: {}, memoryStatus: 0, pts: ptsInitial});
+      this.$orgs['.player--' + i + '__pts'].dispatchAction('text', ptsInitial);
 
-        if (this.matrix[posX][posY] === null) {
-          this.matrix[posX][posY] = '.player--' + i;
+      while (playerData.posX === null || playerData.posY === null) {
+        const posX = Math.floor(this.getRandomValue() * this.matrixWidth);
+        const posY = Math.floor(this.getRandomValue() * this.matrixHeight);
+
+        if (matrix[posX][posY] === null) {
+          matrix[posX][posY] = '.player--' + i;
           playerData = {posX, posY};
 
           player
@@ -292,7 +342,36 @@ export default class Simulation {
             });
         }
       }
+    }
 
+    this.$orgs['.matrix'].dispatchAction(
+      'data',
+      {matrix, cooperatorAlive: true, maxPointsReached: false, populationAlive: this.population, riskIntroduced: false}
+    );
+  }
+
+  populateStats() {
+    for (let i = 0; i < this.population; i++) {
+      const statsPlayerId = '.stats__player--' + i;
+
+      this.$orgs[statsPlayerId + '__name']
+        .dispatchAction('removeClass', 'dead')
+        .dispatchAction('html', `<div class="container container--avatar">${this.players[i].name}</div>`);
+      this.$orgs[statsPlayerId + '__pts'].dispatchAction('text', ptsInitial);
+      this.$orgs[statsPlayerId + '__memory'].dispatchAction('text', '');
+    }
+  }
+
+  stoke() {
+    this.teamKeys.forEach((team) => {
+      this.teams[team] = {
+        playerIds: [],
+        subPopulation: 0
+      };
+    });
+
+    for (let i = 0; i < this.population; i++) {
+      const player = this.$orgs['.player--' + i];
       let id;
       let img = '<img class="avatar--player__img" ';
       let span = '<span class="avatar--player__number">';
@@ -307,7 +386,7 @@ export default class Simulation {
         name = img + span;
       }
       else {
-        team = this.teamKeys[Math.floor(3 * (i - 1) / (this.population - 1))];
+        team = this.teamKeys[Math.floor((i - 1) * 3 / (this.population - 1))];
         id = `.${team}--${i}`;
         span += `${this.teams[team].subPopulation + 1}</span>`;
 
@@ -324,7 +403,7 @@ export default class Simulation {
           }
 
           case 'snowflake': {
-            const snowflakeCanvas = snowflakeGenerate(window.snowflake_color);
+            const snowflakeCanvas = snowflakeGenerate(this.snowflakeColor, 80); // Double density for retina screens.
             const snowflakeDataURL = snowflakeCanvas.toDataURL('image/png');
             img += `src="${snowflakeDataURL}">`;
             name = img + span;
@@ -334,49 +413,44 @@ export default class Simulation {
         }
       }
 
-      player
-        .dispatchAction('addClass', team)
-        .dispatchAction('data', {id, memoryOfLastPlays: {}, memoryStatus: 0, name, pts, team});
-      this.$orgs['.player--' + i + '__pts'].dispatchAction('text', pts);
-    }
-
-    this.$orgs['.matrix'].dispatchAction('data', {matrix: this.matrix});
-  }
-
-  populateStats() {
-    for (let i = 0; i < this.population; i++) {
-      const playerData = this.$orgs['.player--' + i].getState().data;
-      const statsPlayer = this.$orgs['.stats__player--' + i];
-      const statsPlayerName = this.$orgs['.stats__player--' + i + '__name'];
-
-      statsPlayerName.dispatchAction('html', `<div class="container container--avatar">${playerData.name}</div>`);
-      this.$orgs['.stats__player--' + i + '__pts'].dispatchAction('text', pts);
+      player.dispatchAction('addClass', team)
+      this.players[i] = {id, name, team};
     }
   }
 
   win(winnerState) {
-    this.$orgs['.console__messages'].dispatchAction('append', `<p>${winnerState.data.name} wins!</p>`);
-    this.$orgs['.matrix'].dispatchAction('prepend', '<div class="matrix__filler"></div>');
-    this.requerio.incept('.matrix__filler');
+    this.$orgs['.console__messages'].dispatchAction('append', `<p>${this.players[winnerState.data.idx].name} wins!</p>`);
 
-    const fillerOrg = this.$orgs['.matrix__filler'];
+    let fillerOrg = this.$orgs['.matrix__filler'];
 
-    fillerOrg.dispatchAction('css', {transform: winnerState.style.transform});
+    if (!fillerOrg) {
+      this.$orgs['.matrix'].dispatchAction('prepend', '<div class="matrix__filler"></div>');
+      this.requerio.incept('.matrix__filler');
+
+      fillerOrg = this.$orgs['.matrix__filler'];
+    }
+    else {
+      this.$orgs['.matrix'].dispatchAction('prepend', fillerOrg);
+    }
+
+    fillerOrg.dispatchAction('css', {transform: winnerState.css.transform});
 
     return new Promise(
       (resolve) => {
         setTimeout(() => {
-          const {posX, posY, team} = winnerState.data;
+          const {idx, posX, posY} = winnerState.data;
+          const team = this.players[idx].team;
 
           fillerOrg.dispatchAction('addClass', team);
-          fillerOrg.dispatchAction('css', {transform: `translate(${40 * posX}px, ${40 * posY}px) scale(7, 7)`});
+          fillerOrg.dispatchAction('css', {transform: `translate(${posX * 40}px, ${posY * 40}px) scale(7, 7)`});
           resolve();
-        }, this.turnInterval); // Must use this.turnInterval and not this.renderInterval so as to process winner data.
+        }, this.endingInterval); // Must use an interval longer than this.renderInterval to process winner data.
       });
   }
 
-  stoke() {
-    this.$orgs.body.dispatchAction('addClass', 'stoked');
+  init() {
+    this.$orgs.body.dispatchAction('addClass', 'initialized');
+    this.stoke();
     this.populateMatrix();
     this.populateStats();
     this.addEventListeners();
@@ -386,24 +460,47 @@ export default class Simulation {
     this.pause();
     this.$orgs['.button--run-pause'].dispatchAction('prop', {disabled: true});
 
+    this.semaphoreArray = [];
+    this.semaphoreLocked = false;
+
+    setTimeout(() => {
+      this.$orgs['.select--engagement-risk'].dispatchAction('removeClass', 'hidden');
+      this.$orgs['.display--engagement-risk'].dispatchAction('addClass', 'hidden');
+      this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: ''});
+    }, this.turnInterval);
+
+    const matrixData = this.$orgs['.matrix'].getState().data;
+
     // End simulation if max points reached.
-    if (this.maxPointsReached) {
+    if (matrixData.maxPointsReached) {
+      let fillerOrg = this.$orgs['.matrix__filler'];
+
+      if (!fillerOrg) {
+        this.$orgs['.matrix'].dispatchAction('prepend', '<div class="matrix__filler"></div>');
+        this.requerio.incept('.matrix__filler');
+
+        fillerOrg = this.$orgs['.matrix__filler'];
+      }
+      else {
+        this.$orgs['.matrix'].dispatchAction('prepend', fillerOrg);
+      }
+
       return new Promise(
         (resolve) => {
           setTimeout(() => {
             const articleBody = this.$orgs['.container--article-body'].html();
 
-            this.$orgs['.matrix'].dispatchAction('addClass', 'kill-screen');
-            this.$orgs['.matrix'].dispatchAction('append', '<div class="matrix__dummy-text">' + articleBody + '</div>');
+            fillerOrg.dispatchAction('addClass', 'kill-screen');
+            fillerOrg.dispatchAction('html', articleBody);
             this.$orgs['.console__messages'].dispatchAction(
               'append',
-              '<p>Reached the kill screen</p><p>Ending simulation</p>'
+              '<p>Guru Meditation Error!</p>'
             );
-          }, this.turnInterval);
+          }, this.endingInterval);
         });
     }
 
-    // End simulation if down to 1 or 0 survivors.
+    let survivorCount = 0;
     let winner;
     let winnerState;
 
@@ -411,21 +508,25 @@ export default class Simulation {
       const state = this.$orgs['.player--' + i].getState();
 
       if (state.data.pts > 0) {
-        winner = this.$orgs['.player--' + i];
-        winnerState = state;
+        survivorCount++;
 
-        break;
+        if (survivorCount === 1) {
+          winner = this.$orgs['.player--' + i];
+          winnerState = state;
+        }
       }
     }
 
-    // End of simultation message for 1 survivor.
-    if (winnerState) {
-      return this.win(winnerState);
-    }
-    // End of simultation message for 0 survivors.
-    else {
+    // End simulation if down to 0 or 1 survivors respectively.
+    if (survivorCount === 0) {
       return this.extinguish();
     }
+    else if (survivorCount === 1) {
+      return this.win(winnerState);
+    }
+
+    // Should never be the case, but if more than 1 survivor, return empty resolved promise.
+    return Promise.resolve();
   }
 
   move() {
@@ -452,8 +553,8 @@ export default class Simulation {
       // Set/unset any translate offsets.
       const playerTransform = this.getStyleFromAttrib(playerState, 'transform');
       const playerTransformParsed = this.parseTransformTranslate(playerTransform);
-      let playerTranslateXReset = parseInt(playerTransformParsed[0], 10);
-      let playerTranslateYReset = parseInt(playerTransformParsed[1], 10);
+      let playerTranslateXReset = parseFloat(playerTransformParsed[0]);
+      let playerTranslateYReset = parseFloat(playerTransformParsed[1]);
       const playerTranslateXRemainder = playerTranslateXReset % this.playerSize;
       const playerTranslateYRemainder = playerTranslateYReset % this.playerSize;
 
@@ -480,38 +581,42 @@ export default class Simulation {
         {transform: 'translate(' + playerTranslateXReset + 'px, ' + playerTranslateYReset + 'px)'}
       );
 
+      const matrixData = this.$orgs['.matrix'].getState().data;
+      const matrix = matrixData.matrix;
       playerState = player.getState();
 
       while (keysTried.includes(false)) {
-        const keyIdxRandom = Math.floor(Math.random() * 5);
+        const random = Math.floor(this.getRandomValue() * 9);
+        let keyIdxRandom;
 
         // Include the option of not moving. This is especially necessary toward the end when we must not have an
-        // oscillation where players always avoid each other.
-        if (keyIdxRandom === 4) {
+        // oscillation where players always avoid each other. Using 1/9 chance because 1/5 made the players too lazy.
+        if (random === 8) {
           keysTried = keysTried.map(val => true);
 
           continue;
         }
 
+        keyIdxRandom = Math.floor(random / 2);
         keysTried[keyIdxRandom] = true;
-        const vonNeumannNeighbors = this.findVonNeumannNeighbors(posX, posY);
+
+        const vonNeumannNeighbors = this.findVonNeumannNeighbors(posX, posY, matrixData);
         const vonNeumannNeighborFound =
           vonNeumannNeighbors[this.vonNeumannKeys[keyIdxRandom].x][this.vonNeumannKeys[keyIdxRandom].y];
 
         if (vonNeumannNeighborFound === null) { // Must strictly equal null. Undefined means out of bounds.
           const keyIdx = keyIdxRandom;
 
-          // Need to parse the style attrib because the computed style value at the time the state was set will have
-          // the styles at the time the animation starts, not when it ends.
+          // Better to parse the style attrib to avoid getting a real-time computed style.
           const playerTransform = this.getStyleFromAttrib(playerState, 'transform');
           const playerTransformParsed = this.parseTransformTranslate(playerTransform);
           let translateX = playerTransformParsed[0];
           let translateY = playerTransformParsed[1];
-          const translateXInt = parseInt(translateX, 10);
-          const translateYInt = parseInt(translateY, 10);
+          const translateXInt = parseFloat(translateX);
+          const translateYInt = parseFloat(translateY);
 
           // Unset old position.
-          this.matrix[posX][posY] = null;
+          matrix[posX][posY] = null;
 
           if (keyIdx === 0) { // Left.
             translateX = (translateXInt - this.playerSize) + 'px';
@@ -534,7 +639,9 @@ export default class Simulation {
           player.dispatchAction('data', {posX, posY});
 
           // Set new position.
-          this.matrix[posX][posY] = playerId;
+          matrix[posX][posY] = playerId;
+
+          this.$orgs['.matrix'].dispatchAction('data', {matrix});
 
           break;
         }
@@ -556,11 +663,13 @@ export default class Simulation {
         continue;
       }
 
-      const vonNeumannNeighbors = this.findVonNeumannNeighbors(playerAState.data.posX, playerAState.data.posY);
+      const matrixData = this.$orgs['.matrix'].getState().data;
       const keysTried = [false, false, false, false];
+      const vonNeumannNeighbors =
+        this.findVonNeumannNeighbors(playerAState.data.posX, playerAState.data.posY, matrixData);
 
       while (keysTried.includes(false)) {
-        const keyIdxRandom = Math.floor(Math.random() * 4);
+        const keyIdxRandom = Math.floor(this.getRandomValue() * 4);
         keysTried[keyIdxRandom] = true;
         const vonNeumannNeighborFound =
           vonNeumannNeighbors[this.vonNeumannKeys[keyIdxRandom].x][this.vonNeumannKeys[keyIdxRandom].y];
@@ -573,8 +682,8 @@ export default class Simulation {
           if (!playerBState.data.inPlayWith) {
             const playerATransform = this.getStyleFromAttrib(playerAState, 'transform');
             const playerATransformParsed = this.parseTransformTranslate(playerATransform);
-            const playerATranslateXOffset = parseInt(playerATransformParsed[0], 10) + (key.x * this.playerPadding);
-            const playerATranslateYOffset = parseInt(playerATransformParsed[1], 10) + (key.y * this.playerPadding);
+            const playerATranslateXOffset = parseFloat(playerATransformParsed[0]) + (key.x * this.playerPadding);
+            const playerATranslateYOffset = parseFloat(playerATransformParsed[1]) + (key.y * this.playerPadding);
 
             playerA.dispatchAction('data', {inPlayWith: vonNeumannNeighborFound});
             playerA.dispatchAction(
@@ -582,7 +691,7 @@ export default class Simulation {
               {transform: 'translate(' + playerATranslateXOffset + 'px, ' + playerATranslateYOffset + 'px)'}
             );
             playerB.dispatchAction('data', {inPlayWith: playerAId});
-            this.playPlayerB(playerB);
+            this.playPlayerB(playerB, matrixData);
 
             break;
           }
@@ -595,6 +704,7 @@ export default class Simulation {
     for (let i = 0; i < this.population; i++) {
       const playerA = this.$orgs['.player--' + i];
       const playerAState = playerA.getState();
+      const playerATeam = this.players[i].team;
 
       if (playerAState.data.pts <= 0) {
         continue;
@@ -607,22 +717,23 @@ export default class Simulation {
       const playerBId = playerAState.data.inPlayWith;
       const playerB = this.$orgs[playerBId];
       const playerBState = playerB.getState();
+      const playerBTeam = this.players[playerBState.data.idx].team;
 
-      if (playerAState.data.team === 'karen') {
+      if (playerATeam === 'karen') {
         playerA.dispatchAction('data', {play: 'defect'});
       }
 
-      else if (playerAState.data.team === 'maga') {
+      else if (playerATeam === 'maga') {
         let play = 'defect';
 
-        if (playerBState.data.team === 'maga' || playerBState.data.team === 'the-donald') {
+        if (playerBTeam === 'maga' || playerBTeam === 'the-donald') {
           play = 'cooperate';
         }
 
         playerA.dispatchAction('data', {play});
       }
 
-      else if (playerAState.data.team === 'snowflake') {
+      else if (playerATeam === 'snowflake') {
         const memoryOfLastPlays = playerAState.data.memoryOfLastPlays;
         let play = 'cooperate';
 
@@ -633,18 +744,20 @@ export default class Simulation {
         playerA.dispatchAction('data', {play});
       }
 
-      else if (playerAState.data.team === 'the-donald') {
+      else if (playerATeam === 'the-donald') {
         playerA.dispatchAction('data', {play: 'defect'});
       }
     }
   }
 
   remember() {
+    const matrixData = this.$orgs['.matrix'].getState().data;
     let snowflakeHasIncompleteMemory;
 
     for (let i = 0; i < this.population; i++) {
       const playerA = this.$orgs['.player--' + i];
       const playerAState = playerA.getState();
+      const playerATeam = this.players[i].team;
       let memoryOfLastPlays;
       let numberOfMemoriesBefore;
       let numberOfMemoriesAfter;
@@ -653,13 +766,13 @@ export default class Simulation {
         continue;
       }
 
-      if (playerAState.data.team === 'snowflake') {
+      if (playerATeam === 'snowflake') {
         memoryOfLastPlays = playerAState.data.memoryOfLastPlays;
         numberOfMemoriesBefore = Object.keys(memoryOfLastPlays).length;
 
         if (
           !snowflakeHasIncompleteMemory &&
-          numberOfMemoriesBefore < this.populationAlive - 1
+          numberOfMemoriesBefore < matrixData.populationAlive - 1
         ) {
           snowflakeHasIncompleteMemory = true;
         }
@@ -670,18 +783,18 @@ export default class Simulation {
         continue;
       }
 
-      if (playerAState.data.team === 'snowflake') {
+      if (playerATeam === 'snowflake') {
         const playerBId = playerAState.data.inPlayWith;
         const playerB = this.$orgs[playerBId];
         const playerBState = playerB.getState();
         memoryOfLastPlays[playerBId] = playerBState.data.play;
         numberOfMemoriesAfter = Object.keys(memoryOfLastPlays).length;
-        let memoryStatus = Math.round(100 * numberOfMemoriesAfter / (this.populationAlive - 1));
+        let memoryStatus = Math.round(numberOfMemoriesAfter * 100 / (matrixData.populationAlive - 1));
         memoryStatus = memoryStatus < 100 ? memoryStatus : 100;
 
         if (
           !snowflakeHasIncompleteMemory &&
-          numberOfMemoriesAfter < this.populationAlive - 1
+          numberOfMemoriesAfter < matrixData.populationAlive - 1
         ) {
           snowflakeHasIncompleteMemory = true;
         }
@@ -694,31 +807,34 @@ export default class Simulation {
             this.$orgs['.stats__player--' + i + '__memory']
               .dispatchAction('text', memoryStatus + '%')
               .dispatchAction('addClass', 'fade--in');
-          }, this.renderInterval);
+          }, this.renderIntervalAdjusted);
         }
       }
     }
 
-    if (!snowflakeHasIncompleteMemory && !this.riskIntroduced && this.risk) {
-      this.riskIntroduced = true;
-
+    if (!snowflakeHasIncompleteMemory && !matrixData.riskIntroduced && this.risk) {
+      this.$orgs['.matrix'].dispatchAction('data', {riskIntroduced: true});
       this.$orgs['.console__messages'].dispatchAction('append', '<p>Engagement risk introduced!</p>');
     }
   }
 
   tally() {
+    const matrixData = this.$orgs['.matrix'].getState().data;
+    const matrix = matrixData.matrix;
     const players = [];
     let cooperatorAlive = false;
+    let populationAlive = matrixData.populationAlive;
 
     for (let i = 0; i < this.population; i++) {
       const player = this.$orgs['.player--' + i];
       const state = player.getState();
+      const team = this.players[i].team;
 
       players.push({player, state});
 
       if (
         state.data.pts > 0 &&
-        (state.data.team === 'maga' || state.data.team === 'snowflake')
+        (team === 'maga' || team === 'snowflake')
       ) {
         cooperatorAlive = true;
       }
@@ -728,6 +844,7 @@ export default class Simulation {
     for (let i = 0; i < players.length; i++) {
       const playerA = players[i].player;
       const playerAState = players[i].state;
+      const playerATeam = this.players[i].team;
 
       if (playerAState.data.pts <= 0) {
         continue;
@@ -759,10 +876,10 @@ export default class Simulation {
         playerA.dispatchAction('data', {inPlayWith: null})
 
         if (
-          this.riskIntroduced &&
+          matrixData.riskIntroduced &&
           playerAPts > 0 &&
-          (!cooperatorAlive || playerAState.data.team !== 'karen') &&
-          Math.random() < this.risk
+          (!cooperatorAlive || playerATeam !== 'karen') &&
+          this.getRandomValue() < this.risk
         ) {
           playerAPts--;
         }
@@ -771,7 +888,8 @@ export default class Simulation {
       if (playerAPts !== playerAPtsOld) {
         if (playerAPts > MAX_POINTS) {
           playerAPts = NaN;
-          this.maxPointsReached = true;
+
+          this.$orgs['.matrix'].dispatchAction('data', {maxPointsReached: true});
         }
 
         const playerPtsId = '.player--' + i + '__pts';
@@ -786,12 +904,12 @@ export default class Simulation {
           this.$orgs['.stats__player--' + i + '__pts']
             .dispatchAction('text', playerAPts)
             .dispatchAction('addClass', 'fade--in');
-        }, this.renderInterval);
+        }, this.renderIntervalAdjusted);
 
         if (playerAPts <= 0) {
-          this.matrix[playerAState.data.posX][playerAState.data.posY] = null;
+          matrix[playerAState.data.posX][playerAState.data.posY] = null;
+          populationAlive--;
 
-          this.populationAlive--;
           playerA.dispatchAction('addClass', 'dead');
           playerA.dispatchAction('data', {posX: null, posY: null});
           this.$orgs['.stats__player--' + i + '__name']
@@ -804,11 +922,13 @@ export default class Simulation {
       }
     }
 
+    this.$orgs['.matrix'].dispatchAction('data', {matrix, populationAlive});
+
     // Must recalculate cooperatorAlive in case they all died within the last loop.
     cooperatorAlive = false;
 
     for (let i = 0; i < players.length; i++) {
-      if (players[i].state.data.team !== 'maga' && players[i].state.data.team !== 'snowflake') {
+      if (this.players[i].team !== 'maga' && this.players[i].team !== 'snowflake') {
         continue;
       }
 
@@ -819,9 +939,8 @@ export default class Simulation {
       }
     }
 
-    if (this.cooperatorAlive !== cooperatorAlive) {
-      this.cooperatorAlive = cooperatorAlive;
-
+    if (matrixData.cooperatorAlive !== cooperatorAlive) {
+      this.$orgs['.matrix'].dispatchAction('data', {cooperatorAlive});
       this.$orgs['.console__messages'].dispatchAction('append', `<p>All cooperators have died</p>
 <p><img class="avatar--player__img" src="../../_assets/src/karen.svg">s risk point loss</p>
 `
@@ -829,7 +948,7 @@ export default class Simulation {
     }
   }
 
-  reset() {
+  redisplayPts() {
     for (let i = 0; i < this.population; i++) {
       const playerPts = this.$orgs['.player--' + i + '__pts'];
 
@@ -838,16 +957,48 @@ export default class Simulation {
   }
 
   turn() {
+    const matrixData = this.$orgs['.matrix'].getState().data;
+
     // Check whether to end simulation.
-    if (this.populationAlive < 2 || this.maxPointsReached) {
+    if (matrixData.populationAlive < 2 || matrixData.maxPointsReached) {
       return this.end();
+    }
+
+    // Check and see if speed has been changed.
+    const sliderSpeed = parseFloat(this.$orgs['.slider--speed'].getState().val) || 0;
+
+    if (this.speed !== sliderSpeed) {
+      this.speed = sliderSpeed;
+      this.renderIntervalAdjusted = (50 - this.speed) * 5;
+      this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
+
+      if (this.speed === 0) {
+        this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
+        this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+      }
+      else if (this.speed > 0 && this.speed <= 25) {
+        this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+        this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+      }
+      else if (this.speed > 25) {
+        this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+        this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
+      }
+
+      if (this.intervalId) {
+        this.intervalId = clearInterval(this.intervalId);
+
+        this.run();
+
+        return Promise.resolve();
+      }
     }
 
     // Otherwise, run through all the methods that compose a turn.
     return new Promise(
       (resolve) => {
-        this.move();
-        resolve();
+          this.move();
+          resolve();
       })
       .then(() => {
         return new Promise(
@@ -855,7 +1006,7 @@ export default class Simulation {
             setTimeout(() => {
               this.approach();
               resolve();
-            }, this.renderInterval * 2); // Longer interval necessary for animating correctly in Safari.
+            }, this.renderIntervalAdjusted * 2); // Longer interval necessary for animating correctly in Safari.
           });
       })
       .then(() => {
@@ -865,31 +1016,120 @@ export default class Simulation {
               this.engage();
               this.remember();
               this.tally();
+              this.redisplayPts();
               resolve();
             }, this.renderInterval);
           });
       })
-      .then(() => {
-        return new Promise(
-          (resolve) => {
-            setTimeout(() => {
-              this.reset();
-              resolve();
-            }, this.renderInterval);
-          });
-      });
   }
 
-  run() {
+  async rerun() {
+    this.$orgs.body
+      .dispatchAction('removeClass', 'transition-slow')
+      .dispatchAction('removeClass', 'transition-medium');
+    this.$orgs['.matrix'].dispatchAction('addClass', 'near-transparent');
+    this.$orgs['.console__messages'].dispatchAction('html', '');
+
+    if (this.$orgs['.matrix__filler']) {
+      this.$orgs['.matrix__filler'].dispatchAction('detach');
+    }
+
+    // Shouldn't be possible, but just in case.
+    if (this.intervalId) {
+      this.intervalId = clearInterval(this.intervalId);
+    }
+
+    while (this.semaphoreArray.length) {
+      await this.semaphoreArray.shift().call(this);
+    }
+
+    this.randomValues = this.randomValuesStore.slice();
+
+    // Will .populateMatrix() and .populateStats() during .run() after all lingering operations from the previous .run()
+    // have completed.
+    this.redisplayPts();
+    this.stoke();
+
+    this.$orgs['.select--engagement-risk'].dispatchAction('addClass', 'hidden');
+    this.$orgs['.display--engagement-risk'].dispatchAction('removeClass', 'hidden');
+    this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: '0'});
+
+    const selectEngagementRiskState = this.$orgs['.select--engagement-risk'].getState();
+    this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
+
+    setTimeout(() => {
+      this.populateMatrix();
+      this.populateStats();
+    }, this.renderInterval);
+    setTimeout(() => {
+      this.$orgs['.matrix'].dispatchAction('removeClass', 'near-transparent');
+    }, this.turnInterval - this.renderInterval);
+    setTimeout(() => {
+      this.$orgs['.button--run-pause']
+        .dispatchAction('prop', {disabled: false})
+        .dispatchAction('removeClass', 'button--run')
+        .dispatchAction('addClass', 'button--pause');
+      this.$orgs['.button--step'].dispatchAction('prop', {disabled: true});
+      this.run(true);
+    }, this.turnInterval);
+  }
+
+  async run(rerun, randomValuesSnapshot) {
+    let needsRandomValuesSnapshot = rerun;
+
     if (!this.intervalId) {
-      // this.intervalId initialized to null. clearInterval() sets it to undefined.
-      if (this.intervalId === null) {
-        this.turn();
+      if (!this.semaphoreLocked) {
+        if (rerun) {
+          this.randomValues = this.randomValuesStore.slice();
+          needsRandomValuesSnapshot = false;
+
+          this.populateMatrix();
+          this.populateStats();
+
+          if (this.speed === 0) {
+            this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+          }
+          else if (this.speed > 0 && this.speed <= 25) {
+            this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+          }
+        }
+
+        this.semaphoreLocked = true;
+
+        this.turn().then(() => {
+          this.semaphoreLocked = false;
+        });
       }
 
+      // Use a semaphore to determine whether a turn is still pending after the end of the interval in which it began.
       this.intervalId = setInterval(() => {
-        this.turn();
-      }, this.turnInterval);
+        if (!this.semaphoreArray.length) {
+          this.semaphoreArray.push(this.turn);
+        }
+
+        if (!this.semaphoreLocked) {
+          if (needsRandomValuesSnapshot) {
+            this.randomValues = this.randomValuesStore.slice();
+            needsRandomValuesSnapshot = false;
+
+            this.populateMatrix();
+            this.populateStats();
+
+            if (this.speed === 0) {
+              this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+            }
+            else if (this.speed > 0 && this.speed <= 25) {
+              this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+            }
+          }
+
+          this.semaphoreLocked = true;
+
+          this.semaphoreArray.shift().call(this).then(() => {
+            this.semaphoreLocked = false;
+          });
+        }
+      }, this.turnIntervalAdjusted);
     }
   }
 

@@ -4,23 +4,26 @@ import Simulation from './simulation.js';
 import './matrix-prepare.js';
 import './stats-prepare.js';
 
-const POPULATION = window.population;
-const MATRIX_WIDTH = Math.round(Math.sqrt(POPULATION) * 1.5);
-const MATRIX_HEIGHT = MATRIX_WIDTH;
-const RENDER_INTERVAL = window.render_interval;
-const TURN_INTERVAL = window.turn_interval;
 const $organisms = organismsGet();
 const requerio = new Requerio($, Redux, $organisms);
 
 requerio.init();
 
-const simulation = new Simulation(
+const matrixWidth = Math.round(Math.sqrt(window.population) * 1.5);
+const matrixHeight = matrixWidth;
+
+const sim = new Simulation(
   requerio,
-  MATRIX_WIDTH,
-  MATRIX_HEIGHT,
-  POPULATION,
-  RENDER_INTERVAL,
-  TURN_INTERVAL
+  {
+    matrixWidth,
+    matrixHeight,
+    playerPadding: window.player_padding,
+    playerSize: window.player_size,
+    population: window.population,
+    renderInterval: window.render_interval,
+    turnInterval: window.turn_interval,
+    snowflakeColor: window.snowflake_color
+  }
 );
 
-simulation.stoke();
+sim.init();

@@ -1,6 +1,12 @@
 .fade--in {
-  animation-duration: 250ms;
+  animation-duration: 200ms;
   animation-name: fadeIn;
+}
+.faster .fade--in {
+  animation-duration: 100ms;
+}
+.fastest .fade--in {
+  animation-duration: 0;
 }
 @-moz-keyframes fadeIn {
   from {
@@ -100,13 +106,22 @@ h2 {
 .transparent {
   opacity: 0 !important;
 }
+.near-transparent {
+  opacity: 0.01 !important;
+}
+.container--engagement-risk {
+  height: 2.6rem;
+}
+.label--engagement-risk,
+.display--engagement-risk,
+.select--engagement-risk {
+  height: 2.4rem;
+}
 .label--engagement-risk,
 .display--engagement-risk {
-  height: 2.4rem;
   vertical-align: top;
 }
 .select--engagement-risk {
-  max-height: 2.4rem;
   overflow: visible;
 }
 @media all and (max-width: 480px) {
@@ -115,9 +130,41 @@ h2 {
     max-width: 6.2rem;
   }
 }
+.container--sliders > * {
+  display: block;
+  height: 2.6rem;
+}
+.container--slider {
+  background-color: #d3d3d3;
+  border-radius: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 0.3rem;
+  width: 20.4rem;
+}
+@media all and (max-width: 480px) {
+  .container--slider {
+    width: 17.7rem;
+  }
+}
+.container--slider--engagement-risk {
+  height: 2.8rem;
+  overflow: hidden;
+  transition: height 200ms linear;
+}
+.label--speed {
+  margin-top: 0.6rem;
+}
+.hidden + .label--speed {
+  margin-top: 0;
+}
+.container--buttons {
+  margin-top: 0.2rem;
+}
 .button {
   background-color: #d3d3d3;
-  border: 1px solid #808080;
+  border: 0;
   border-radius: 0.4rem;
   cursor: pointer;
   display: flex;
@@ -125,8 +172,9 @@ h2 {
   align-items: center;
   font-size: 1.4rem;
   margin: 0.6rem 0.3rem;
-  width: 3.4rem;
-  height: 2.8rem;
+  overflow: hidden;
+  width: 3.6rem;
+  height: 3rem;
 }
 @media all and (max-width: 480px) {
   .button {
@@ -168,10 +216,16 @@ h2 {
   display: block;
 }
 .button--rerun__svg {
-  left: 47%;
+  fill: #000;
+  left: 33%;
   position: relative;
+  stroke: #000;
   transform: translateX(-50%) rotate(30deg);
   width: 1.6rem;
+}
+.button--rerun:disabled .button--rerun__svg {
+  fill: #808080;
+  stroke: #808080;
 }
 .button:active:not(.button--step:disabled) {
   filter: brightness(80%);
@@ -181,33 +235,36 @@ h2 {
     filter: brightness(90%);
   }
 }
-#browser-advice {
+.browser-advice {
   font-size: 2.4rem;
 }
-.es2016 #browser-advice {
+.es2016 .browser-advice {
   display: none;
 }
-#matrix {
+.matrix {
   border: 1px solid #808080;
   overflow: hidden;
   position: relative;
+  transition: opacity 200ms linear;
 }
-#matrix.kill-screen {
-  background-color: #000080;
-}
-.matrix__filler,
+.matrix__filler:not(.kill-screen),
 .player {
   padding: 0.3rem;
-  position: absolute;
   width: 4rem;
   height: 4rem;
   transform: scaleY(1);
 }
 .matrix__filler {
-  transition: transform 1250ms linear;
+  font-size: 4px;
+  padding: 0 1em;
+  position: absolute;
+  transition: transform 800ms linear;
 }
 .matrix__filler.karen {
   background-color: #daa520;
+}
+.matrix__filler.kill-screen {
+  background-color: #000080;
 }
 .matrix__filler.maga {
   background-color: #f00;
@@ -217,13 +274,21 @@ h2 {
 }
 .matrix__filler.the-donald {
   background-color: #ff8c00;
-  filter: saturate(200%);
+}
+.matrix__filler ul {
+  padding-left: 2.25em;
 }
 .player {
   color: #fff;
   display: none;
   opacity: 1;
-  transition: opacity 250ms linear 250ms, transform 250ms linear;
+  position: absolute;
+}
+.transition-slow .player {
+  transition: opacity 200ms linear 200ms, transform 200ms linear;
+}
+.transition-medium .player {
+  transition: opacity 100ms linear 100ms, transform 100ms linear;
 }
 .player.focused {
   outline-style: solid;
@@ -250,10 +315,9 @@ h2 {
 }
 .player.the-donald .player__content {
   background-color: #ff8c00;
-  filter: saturate(200%);
 }
 .player.the-donald.focused {
-  outline-color: #ff7e00;
+  outline-color: #ff8c00;
 }
 .player.dead {
   opacity: 0;
@@ -281,26 +345,14 @@ h2 {
   position: absolute;
   top: 0;
   left: 0;
-  transition: transform 250ms linear;
+  transition: transform 200ms linear;
   width: 100%;
 }
 .matrix__cover.reveal {
   transform: translateY(-66.66666666666667%);
 }
-.matrix__dummy-text {
-  padding: 0 1em;
-  font-size: 4px;
-}
-.matrix__dummy-text ul {
-  padding-left: 2.25em;
-}
 .controls {
   margin-top: 0.6rem;
-  opacity: 0;
-  transition: opacity 250ms;
-}
-.stoked .controls {
-  opacity: 1;
 }
 @media all and (max-width: 480px) {
   .controls {
@@ -332,7 +384,7 @@ h2 {
   top: 0;
   right: 4.8rem;
   transform: translateY(-100%);
-  transition: transform 250ms linear;
+  transition: transform 200ms linear;
 }
 .slid .navigation__menu {
   transform: translateY(0);
@@ -347,7 +399,7 @@ h2 {
 .navigation__toggle__slider {
   position: relative;
   transform: translateY(-1.7rem);
-  transition: transform 250ms linear;
+  transition: transform 200ms linear;
 }
 .slid .navigation__toggle__slider {
   transform: translateY(0);
@@ -370,14 +422,6 @@ h2 {
   .navigation__toggle__svg:hover {
     cursor: pointer;
     fill: #808080;
-  }
-}
-.console {
-  margin-top: 1.4rem;
-}
-@media all and (max-width: 480px) {
-  .console {
-    margin-top: 0;
   }
 }
 .console__messages p {
@@ -538,7 +582,7 @@ article ul {
   row-gap: 1.6rem;
   margin: 0.8rem 0;
   opacity: 0;
-  transition: opacity 250ms;
+  transition: opacity 200ms ease 200ms;
 }
 @media all and (max-width: 1024px) {
   .three-section .container--grid {
@@ -561,7 +605,7 @@ article ul {
     grid-template-columns: auto 12.3rem;
   }
 }
-.stoked .container--grid {
+.initialized .container--grid {
   opacity: 1;
 }
 @media all and (max-width: 767px) {
@@ -574,6 +618,10 @@ article ul {
 .grid__article h1 {
   margin-top: 0;
 }
-.pre-stoke-transparent {
+.pre-init-transparent {
   opacity: 0;
+  transition: opacity 200ms ease 200ms;
+}
+.pre-init-transparent.initialized {
+  opacity: 1;
 }
