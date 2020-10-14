@@ -100,13 +100,13 @@ export default class Simulation {
     const simulationInst = this;
 
     this.$orgs['.select--engagement-risk'].on('change', function () {
-      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', this.value)
+      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', `${this.value}%`)
       simulationInst.$orgs['.slider--engagement-risk'].dispatchAction('val', this.value);
       document.cookie = `risk=${this.value};sameSite=strict`;
     });
     this.$orgs['.slider--engagement-risk'].on('change', function () {
       simulationInst.$orgs['.select--engagement-risk'].dispatchAction('val', this.value);
-      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', this.value)
+      simulationInst.$orgs['.display--engagement-risk'].dispatchAction('text', `${this.value}%`)
       document.cookie = `risk=${this.value};sameSite=strict`;
     });
     this.$orgs['.slider--speed'].on('change', function () {
@@ -136,7 +136,7 @@ export default class Simulation {
     if (riskCookie) {
       // If the cookie is set, update the select and slider but leave this.risk set to null when initializing the page.
       this.$orgs['.select--engagement-risk'].dispatchAction('val', riskCookie);
-      this.$orgs['.display--engagement-risk'].dispatchAction('text', riskCookie)
+      this.$orgs['.display--engagement-risk'].dispatchAction('text', `${riskCookie}%`)
       this.$orgs['.slider--engagement-risk'].dispatchAction('val', riskCookie);
     }
 
@@ -1031,8 +1031,10 @@ export default class Simulation {
     this.$orgs['.console__messages'].dispatchAction('html', '');
 
     if (this.$orgs['.matrix__filler']) {
-      this.$orgs['.matrix__filler'].dispatchAction('attr', {class: 'matrix__filler', style: null});
-      this.$orgs['.matrix__filler'].dispatchAction('detach');
+      this.$orgs['.matrix__filler']
+        .dispatchAction('attr', {class: 'matrix__filler', style: null})
+        .dispatchAction('html', '')
+        .dispatchAction('detach');
     }
 
     // Shouldn't be possible, but just in case.
