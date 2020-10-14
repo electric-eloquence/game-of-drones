@@ -1078,6 +1078,7 @@ export default class Simulation {
   async run(rerun, randomValuesSnapshot) {
     let needsRandomValuesSnapshot = rerun;
 
+    // Use a semaphore to determine whether a turn is still pending after the end of the interval in which it began.
     if (!this.intervalId) {
       if (!this.semaphoreLocked) {
         if (rerun) {
@@ -1102,7 +1103,6 @@ export default class Simulation {
         });
       }
 
-      // Use a semaphore to determine whether a turn is still pending after the end of the interval in which it began.
       this.intervalId = setInterval(() => {
         if (!this.semaphoreArray.length) {
           this.semaphoreArray.push(this.turn);
