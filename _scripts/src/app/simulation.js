@@ -1104,6 +1104,7 @@ export default class Simulation {
     }, this.turnInterval);
     setTimeout(() => {
       this.randomValues = this.randomValuesStore.slice();
+      this.risk = null;
 
       this.populateMatrix();
       this.populateStats();
