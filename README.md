@@ -37,3 +37,5 @@ Magas are alone in incurring ongoing loss to defection. They tend to die off qui
 Setting engagement risk low may result in Snowflakes never dying. The simulation will run until it reaches its kill screen.
 
 Setting engagement risk high will almost certainly kill all Snowflakes. After the cooperators have died, the drones' points will wilt away until one or no winner emerges.
+
+The simulation is deterministic and will use the same pseudorandom values to determine moves until the page is refreshed or closed. So long as engagement risk is unchanged, each rerun will play out the same.
