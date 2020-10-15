@@ -212,10 +212,10 @@ h2 {
   height: 1.4rem;
   border-left: 0.3rem solid #000;
 }
-.button--rerun {
+.button--restart {
   display: block;
 }
-.button--rerun__svg {
+.button--restart__svg {
   fill: #000;
   left: 33%;
   position: relative;
@@ -223,7 +223,7 @@ h2 {
   transform: translateX(-50%) rotate(30deg);
   width: 1.6rem;
 }
-.button--rerun:disabled .button--rerun__svg {
+.button--restart:disabled .button--restart__svg {
   fill: #808080;
   stroke: #808080;
 }
@@ -252,12 +252,12 @@ h2 {
   padding: 0.3rem;
   width: 4rem;
   height: 4rem;
-  transform: scaleY(1);
 }
 .matrix__filler {
   font-size: 4px;
   padding: 0 1em;
   position: absolute;
+  transform: scaleY(1);
   transition: transform 800ms linear;
 }
 .matrix__filler.karen {

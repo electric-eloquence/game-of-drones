@@ -8,7 +8,7 @@ export default function () {
     '.container--slider--engagement-risk': null,
     '.slider--engagement-risk': null,
     '.slider--speed': null,
-    '.button--rerun': null,
+    '.button--restart': null,
     '.button--run-pause': null,
     '.button--step': null,
     '.console__messages': null,

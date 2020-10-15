@@ -23,7 +23,7 @@
     </script>
     <script src="_scripts/src/variables.styl" type="text/javascript"></script>
   </head>
-  <body class="">
+  <body class=" transition-slow">
     <img id="snowflake-img" width="444" height="384">
     <!--<img id="snowflake-img" width="40" height="35">-->
     </div>
@@ -43,7 +43,10 @@
       document.addEventListener(
         'DOMContentLoaded',
         function () {
-          document.getElementById('browser-advice').remove();
+          const browserAdvice = document.getElementById('browser-advice');
+          if (browserAdvice) {
+            browserAdvice.remove();
+          }
         }
       );
     </script>

@@ -47,9 +47,13 @@ export default class Simulation {
 
           const selectEngagementRiskState = this.$orgs['.select--engagement-risk'].getState();
           this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
+
+          this.run(true);
+        }
+        else {
+          this.run(false);
         }
 
-        this.run();
         this.$orgs['.button--run-pause']
           .dispatchAction('removeClass', 'button--run')
           .dispatchAction('addClass', 'button--pause');
@@ -63,17 +67,14 @@ export default class Simulation {
         this.$orgs['.button--step'].dispatchAction('prop', {disabled: false});
       }
 
-      this.$orgs['.button--rerun'].dispatchAction('prop', {disabled: false});
+      this.$orgs['.button--restart'].dispatchAction('prop', {disabled: false});
     });
     this.$orgs['.button--run-pause'].on('mouseleave', () => {
       this.$orgs['.button--run-pause'].dispatchAction('blur');
     });
     this.$orgs['.button--step'].on('click', () => {
-      const buttonStepState = this.$orgs['.button--step'].getState();
-
-      if (buttonStepState.prop.disabled) {
-        return;
-      }
+      this.renderIntervalAdjusted = this.renderInterval;
+      this.turnIntervalAdjusted = this.turnInterval;
 
       if (this.risk === null) {
         this.$orgs['.select--engagement-risk'].dispatchAction('addClass', 'hidden');
@@ -84,17 +85,35 @@ export default class Simulation {
         this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
       }
 
-      this.turn();
-      this.$orgs['.button--rerun'].dispatchAction('prop', {disabled: false});
+      this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
+      this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+      this.turn(true);
+      this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': 'none'});
+      this.$orgs['.button--restart'].dispatchAction('prop', {disabled: false});
+
+      setTimeout(() => {
+        this.renderIntervalAdjusted = (50 - this.speed) * 5;
+        this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
+
+        if (this.speed > 0 && this.speed <= 25) {
+          this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+          this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+        }
+        else if (this.speed > 25) {
+          this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+        }
+
+        this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': ''});
+      }, this.turnInterval);
     });
     this.$orgs['.button--step'].on('mouseleave', () => {
       this.$orgs['.button--step'].dispatchAction('blur');
     });
-    this.$orgs['.button--rerun'].on('click', () => {
-      this.rerun();
+    this.$orgs['.button--restart'].on('click', () => {
+      this.restart();
     });
-    this.$orgs['.button--rerun'].on('mouseleave', () => {
-      this.$orgs['.button--rerun'].dispatchAction('blur');
+    this.$orgs['.button--restart'].on('mouseleave', () => {
+      this.$orgs['.button--restart'].dispatchAction('blur');
     });
 
     const simulationInst = this;
@@ -273,20 +292,37 @@ export default class Simulation {
   /* END PRIVATE METHODS. BEGIN PUBLIC METHODS */
 
   extinguish() {
-    this.$orgs['.console__messages'].dispatchAction(
-      'append',
-      '<p>There are no winners</p>'
-    );
+    let coverOrg = this.$orgs['.matrix__cover'];
+    let fillerOrg = this.$orgs['.matrix__filler'];
+
+    if (!coverOrg) {
+      this.$orgs['.matrix'].dispatchAction(
+        'prepend', '<img class="matrix__cover" src="../../_assets/src/matrix__cover.svg">');
+      this.requerio.incept('.matrix__cover');
+
+      coverOrg = this.$orgs['.matrix__cover'];
+    }
+    else {
+      this.$orgs['.matrix'].dispatchAction('prepend', coverOrg);
+    }
+
+    if (!fillerOrg) {
+      this.$orgs['.matrix'].dispatchAction('prepend', '<div class="matrix__filler"></div>');
+      this.requerio.incept('.matrix__filler');
+
+      fillerOrg = this.$orgs['.matrix__filler'];
+    }
+    else {
+      this.$orgs['.matrix'].dispatchAction('prepend', fillerOrg);
+    }
 
     return new Promise(
       (resolve) => {
         setTimeout(() => {
-          this.$orgs['.matrix'].dispatchAction('html', `
-      <img src="../../_assets/src/extinction.png" width="${this.matrixWidth * this.playerSize}">
-      <img class="matrix__cover" src="../../_assets/src/matrix__cover.svg"></div>
-      `
-          );
-          this.requerio.incept('.matrix__cover');
+          fillerOrg.dispatchAction('addClass', 'extinction');
+          fillerOrg.dispatchAction(
+            'html', `<img src="../../_assets/src/extinction.png" width="${this.matrixWidth * this.playerSize}">`);
+          this.$orgs['.console__messages'].dispatchAction('append', '<p>There are no winners</p>');
           resolve();
         }, this.renderInterval);
       })
@@ -294,7 +330,7 @@ export default class Simulation {
         return new Promise(
           (resolve) => {
             setTimeout(() => {
-              this.$orgs['.matrix__cover'].dispatchAction('addClass', 'reveal');
+              coverOrg.dispatchAction('addClass', 'reveal');
               resolve();
             }, this.endingInterval);
           });
@@ -419,8 +455,6 @@ export default class Simulation {
   }
 
   win(winnerState) {
-    this.$orgs['.console__messages'].dispatchAction('append', `<p>${this.players[winnerState.data.idx].name} wins!</p>`);
-
     let fillerOrg = this.$orgs['.matrix__filler'];
 
     if (!fillerOrg) {
@@ -443,6 +477,8 @@ export default class Simulation {
 
           fillerOrg.dispatchAction('addClass', team);
           fillerOrg.dispatchAction('css', {transform: `translate(${posX * 40}px, ${posY * 40}px) scale(7, 7)`});
+          this.$orgs['.console__messages'].dispatchAction('append', `<p>${this.players[winnerState.data.idx].name} wins!</p>`);
+
           resolve();
         }, this.endingInterval); // Must use an interval longer than this.renderInterval to process winner data.
       });
@@ -462,12 +498,6 @@ export default class Simulation {
 
     this.semaphoreArray = [];
     this.semaphoreLocked = false;
-
-    setTimeout(() => {
-      this.$orgs['.select--engagement-risk'].dispatchAction('removeClass', 'hidden');
-      this.$orgs['.display--engagement-risk'].dispatchAction('addClass', 'hidden');
-      this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: ''});
-    }, this.turnInterval);
 
     const matrixData = this.$orgs['.matrix'].getState().data;
 
@@ -956,7 +986,7 @@ export default class Simulation {
     }
   }
 
-  turn() {
+  turn(step = false) {
     const matrixData = this.$orgs['.matrix'].getState().data;
 
     // Check whether to end simulation.
@@ -967,7 +997,7 @@ export default class Simulation {
     // Check and see if speed has been changed.
     const sliderSpeed = parseFloat(this.$orgs['.slider--speed'].getState().val) || 0;
 
-    if (this.speed !== sliderSpeed) {
+    if (!step && this.speed !== sliderSpeed) {
       this.speed = sliderSpeed;
       this.renderIntervalAdjusted = (50 - this.speed) * 5;
       this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
@@ -1023,17 +1053,29 @@ export default class Simulation {
       })
   }
 
-  async rerun() {
+  async restart() {
     this.$orgs.body
       .dispatchAction('removeClass', 'transition-slow')
       .dispatchAction('removeClass', 'transition-medium');
     this.$orgs['.matrix'].dispatchAction('addClass', 'near-transparent');
+    this.$orgs['.select--engagement-risk'].dispatchAction('removeClass', 'hidden');
+    this.$orgs['.display--engagement-risk'].dispatchAction('addClass', 'hidden');
+    this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: ''});
+    this.$orgs['.button--run-pause'].dispatchAction('css', {'pointer-events': 'none'});
+    this.$orgs['.button--restart'].dispatchAction('css', {'pointer-events': 'none'});
+    this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': 'none'});
     this.$orgs['.console__messages'].dispatchAction('html', '');
 
     if (this.$orgs['.matrix__filler']) {
       this.$orgs['.matrix__filler']
         .dispatchAction('attr', {class: 'matrix__filler', style: null})
         .dispatchAction('html', '')
+        .dispatchAction('detach');
+    }
+
+    if (this.$orgs['.matrix__cover']) {
+      this.$orgs['.matrix__cover']
+        .dispatchAction('attr', {class: 'matrix__cover'})
         .dispatchAction('detach');
     }
 
@@ -1046,56 +1088,59 @@ export default class Simulation {
       await this.semaphoreArray.shift().call(this);
     }
 
-    this.randomValues = this.randomValuesStore.slice();
-
-    // Will .populateMatrix() and .populateStats() during .run() after all lingering operations from the previous .run()
-    // have completed.
     this.redisplayPts();
     this.stoke();
 
-    this.$orgs['.select--engagement-risk'].dispatchAction('addClass', 'hidden');
-    this.$orgs['.display--engagement-risk'].dispatchAction('removeClass', 'hidden');
-    this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: '0'});
-
-    const selectEngagementRiskState = this.$orgs['.select--engagement-risk'].getState();
-    this.risk = parseFloat(selectEngagementRiskState.val) * 0.01;
-
     setTimeout(() => {
+      this.$orgs['.select--engagement-risk'].dispatchAction('removeClass', 'hidden');
+      this.$orgs['.display--engagement-risk'].dispatchAction('addClass', 'hidden');
+      this.$orgs['.container--slider--engagement-risk'].dispatchAction('css', {height: ''});
+      this.$orgs['.button--run-pause']
+        .dispatchAction('removeClass', 'button--pause')
+        .dispatchAction('addClass', 'button--run')
+        .dispatchAction('prop', {disabled: false});
+      this.$orgs['.button--step'].dispatchAction('prop', {disabled: false});
+      this.$orgs['.button--restart'].dispatchAction('prop', {disabled: true});
+    }, this.turnInterval);
+    setTimeout(() => {
+      this.randomValues = this.randomValuesStore.slice();
+
       this.populateMatrix();
       this.populateStats();
-    }, this.renderInterval);
-    setTimeout(() => {
       this.$orgs['.matrix'].dispatchAction('removeClass', 'near-transparent');
-    }, this.turnInterval - this.renderInterval);
+      this.$orgs['.button--run-pause'].dispatchAction('css', {'pointer-events': ''});
+      this.$orgs['.button--restart'].dispatchAction('css', {'pointer-events': ''});
+      this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': ''});
+    }, this.turnInterval + this.renderInterval);
     setTimeout(() => {
-      this.$orgs['.button--run-pause']
-        .dispatchAction('prop', {disabled: false})
-        .dispatchAction('removeClass', 'button--run')
-        .dispatchAction('addClass', 'button--pause');
-      this.$orgs['.button--step'].dispatchAction('prop', {disabled: true});
-      this.run(true);
-    }, this.turnInterval);
+      if (this.speed === 0) {
+        this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+      }
+      else if (this.speed > 0 && this.speed <= 25) {
+        this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+      }
+    }, this.turnInterval + (this.renderInterval * 2));
   }
 
-  async run(rerun, randomValuesSnapshot) {
-    let needsRandomValuesSnapshot = rerun;
+  async run(restart = false) {
+    let needsRandomValuesSnapshot = true;
 
     // Use a semaphore to determine whether a turn is still pending after the end of the interval in which it began.
     if (!this.intervalId) {
       if (!this.semaphoreLocked) {
-        if (rerun) {
+        if (restart) {
           this.randomValues = this.randomValuesStore.slice();
           needsRandomValuesSnapshot = false;
 
           this.populateMatrix();
           this.populateStats();
+        }
 
-          if (this.speed === 0) {
-            this.$orgs.body.dispatchAction('addClass', 'transition-slow');
-          }
-          else if (this.speed > 0 && this.speed <= 25) {
-            this.$orgs.body.dispatchAction('addClass', 'transition-medium');
-          }
+        if (this.speed === 0) {
+          this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+        }
+        else if (this.speed > 0 && this.speed <= 25) {
+          this.$orgs.body.dispatchAction('addClass', 'transition-medium');
         }
 
         this.semaphoreLocked = true;
@@ -1112,11 +1157,13 @@ export default class Simulation {
 
         if (!this.semaphoreLocked) {
           if (needsRandomValuesSnapshot) {
-            this.randomValues = this.randomValuesStore.slice();
-            needsRandomValuesSnapshot = false;
+            if (restart) {
+              this.randomValues = this.randomValuesStore.slice();
+              needsRandomValuesSnapshot = false;
 
-            this.populateMatrix();
-            this.populateStats();
+              this.populateMatrix();
+              this.populateStats();
+            }
 
             if (this.speed === 0) {
               this.$orgs.body.dispatchAction('addClass', 'transition-slow');

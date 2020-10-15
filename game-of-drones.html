@@ -163,7 +163,7 @@
               </button> <button class="button button--step" type="button">
                 <div class="button--step__left"></div>
                 <div class="button--step__right"></div>
-              </button> <button class="button button--rerun" type="button" disabled> <svg xmlns="http://www.w3.org/2000/svg" class="button--rerun__svg" viewBox="0 0 120 146">
+              </button> <button class="button button--restart" type="button" disabled> <svg xmlns="http://www.w3.org/2000/svg" class="button--restart__svg" viewBox="0 0 120 146">
                   <path d=" M 105 85 A 45 45 0 1 1 60 40" stroke-width="20" fill="transparent" />
                   <polygon points="60,0 96,46 60,82" /> </svg> </button> </div>
           </section>
@@ -250,7 +250,10 @@
       document.addEventListener(
         'DOMContentLoaded',
         function () {
-          document.getElementById('browser-advice').remove();
+          const browserAdvice = document.getElementById('browser-advice');
+          if (browserAdvice) {
+            browserAdvice.remove();
+          }
         }
       );
     </script>
