@@ -17,7 +17,7 @@ export default class Simulation {
     this.turnInterval = config.turnInterval;
     this.snowflakeColor = config.snowflakeColor;
 
-    this.endingInterval = this.turnInterval / 2; // Must be longer than this.renderInterval to process winner data.
+    this.endingInterval = this.renderInterval * 3; // Must be longer than this.renderInterval to process winner data.
     this.intervalId = null;
     this.players = [];
     this.randomValuesStore = [];
