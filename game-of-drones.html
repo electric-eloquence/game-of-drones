@@ -49,9 +49,11 @@
     <div class="container container--grid">
       <section class="grid__left">
         <div class="container container--matrix">
-          <section id="matrix" class="matrix"></section>
+          <section id="matrix" class="matrix">
+            <div class="matrix__filler"></div> <img class="matrix__cover" src="_assets/src/matrix__cover.svg">
+          </section>
           <section class="controls">
-            <div class="container container--engagement-risk"> <label class="label--engagement-risk" for="engagement-risk-slider">Engagement risk:</label> <select class="select--engagement-risk" name="engagement-risk">
+            <div class="container container--risk"> <label class="label--risk" for="risk-slider">Engagement risk:</label> <select class="select--risk" name="risk">
                 <option value="0">0%</option>
                 <option value="1">1%</option>
                 <option value="2">2%</option>
@@ -153,10 +155,10 @@
                 <option value="98">98%</option>
                 <option value="99">99%</option>
                 <option value="100">100%</option>
-              </select> <span class="display--engagement-risk hidden">50%</span> </div>
+              </select> <span class="display--risk hidden">50%</span> </div>
             <div class="container container--sliders">
-              <div class="container container--slider container--slider--engagement-risk"> <input type="range" class="slider--engagement-risk" name="engagement-risk-slider" min="0" max="100" value="50"> </div> <label class="label--speed" for="speed-slider">Speed:</label>
-              <div class="container container--slider container--slider--speed"> <input type="range" class="slider--speed" name="speed" min="0" max="49" value="0"> </div>
+              <div class="container container--slider container--slider--risk"> <input type="range" class="slider--risk" name="risk-slider" min="0" max="100" value="50"> </div> <label class="label--speed" for="speed-slider">Speed:</label>
+              <div class="container container--slider container--slider--speed"> <input type="range" class="slider--speed" name="speed" min="0" max="50" value="0"> </div>
             </div>
             <div class="container container--buttons"> <button class="button button--run-pause button--run" type="button">
                 <div>&nbsp;</div>
@@ -223,14 +225,14 @@
             <p>Magas are alone in incurring ongoing loss to defection. They tend to die off quickly, even with zero engagement risk.</p>
             <p>Setting engagement risk low may result in Snowflakes never dying. The simulation will run until it reaches its kill screen.</p>
             <p>Setting engagement risk high will almost certainly kill all Snowflakes. After the cooperators have died, the drones' points will wilt away until one or no winner emerges.</p>
-            <p>The simulation is deterministic and will use the same pseudorandom values to determine moves until the page is refreshed or closed. So long as engagement risk is unchanged, each rerun will play out the same.</p>
+            <p>The simulation is deterministic and will use the same set of pseudorandom values to determine moves until the page is refreshed or closed. So long as engagement risk is unchanged, each rerun will play out identically.</p>
           </div>
         </article>
       </section>
     </div>
-    <footer class="footer"> This page was created in <a href="https://fepper.io" target="_blank">Fepper</a>.
+    <footer class="footer">This was created in <a href="https://fepper.io" target="_blank">Fepper</a>.
       Its frontend application state is managed by <a href="https://github.com/electric-eloquence/requerio" target="_blank">Requerio</a>.
-      It has no backend application state. </footer>
+      It has no backend application state.</footer>
     <script>
       // Adding browser advice via JavaScript so it isn't picked up by web crawlers without some serious effort.
       const browserAdvice = document.createElement('div');

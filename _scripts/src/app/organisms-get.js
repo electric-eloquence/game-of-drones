@@ -1,19 +1,25 @@
 export default function () {
   const $organisms = {
-    'body': null,
+    window: null,
+    body: null,
+    '.navigation': null,
+    '.grid__left': null,
     '.matrix': null,
-    '.controls': null,
-    '.select--engagement-risk': null,
-    '.display--engagement-risk': null,
-    '.container--slider--engagement-risk': null,
-    '.slider--engagement-risk': null,
+    '.matrix__filler': null,
+    '.matrix__cover': null,
+    '.select--risk': null,
+    '.display--risk': null,
+    '.container--slider--risk': null,
+    '.slider--risk': null,
     '.slider--speed': null,
     '.button--restart': null,
     '.button--run-pause': null,
     '.button--step': null,
     '.console__messages': null,
     '.stats__player': null,
-    '.container--article-body': null
+    '.grid__article': null,
+    '.container--article-body': null,
+    '.footer': null
   };
 
   for (let i = 0; i < window.population; i++) {

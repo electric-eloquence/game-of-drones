@@ -154,10 +154,16 @@ organism, set the focused organism's selector as `state.activeOrganism`.
         }
 
         const state = store.getState()[orgSelector];
+        let stateNow;
 
-        $org.updateMeasurements(state);
+        if ($org.updateMeasurements(state)) {
+          stateNow = store.getState()[orgSelector];
+        }
+        else {
+          stateNow = state;
+        }
 
-        return state;
+        return stateNow;
       };
     }
   }
