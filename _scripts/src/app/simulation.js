@@ -57,9 +57,13 @@ export default class Simulation {
     };
 
     this.$orgs.window.on('load', this.mobileArticleScrollClosure());
+
     this.$orgs.window.on('resize', debounce(this.mobileArticleScrollClosure()));
+
     this.$orgs['.button--run-pause'].on('click', () => {
       const buttonRunPauseState = this.$orgs['.button--run-pause'].getState();
+
+      this.$orgs['.button--restart'].dispatchAction('prop', {disabled: false});
 
       if (buttonRunPauseState.classArray.includes('button--run')) {
         if (this.risk === null) {
@@ -83,11 +87,41 @@ export default class Simulation {
           document.cookie = `risk=${selectRiskVal};sameSite=strict`;
         }
 
-        this.run();
+        const sliderSpeed = parseFloat(this.$orgs['.slider--speed'].getState().val) || 0;
+        let cookieSpeed;
+
+        try {
+          cookieSpeed = document.cookie.split('; ')
+            .find(row => row.startsWith('speed='))
+            .split('=')[1];
+        }
+        catch {}
+
+        if (sliderSpeed !== this.speed || sliderSpeed !== parseFloat(cookieSpeed)) {
+          this.speed = sliderSpeed;
+          document.cookie = `speed=${sliderSpeed};sameSite=strict`;
+          this.renderIntervalAdjusted = (50 - this.speed) * this.renderMultiplier;
+          this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
+
+          if (this.speed === 0) {
+            this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
+            this.$orgs.body.dispatchAction('addClass', 'transition-slow');
+          }
+          else if (this.speed <= 25) {
+            this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+            this.$orgs.body.dispatchAction('addClass', 'transition-medium');
+          }
+          else if (this.speed > 25) {
+            this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
+            this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
+          }
+        }
+
         this.$orgs['.button--run-pause']
           .dispatchAction('removeClass', 'button--run')
           .dispatchAction('addClass', 'button--pause');
         this.$orgs['.button--step'].dispatchAction('prop', {disabled: true});
+        this.run();
       }
       else {
         this.pause();
@@ -96,13 +130,13 @@ export default class Simulation {
           .dispatchAction('addClass', 'button--run');
         this.$orgs['.button--step'].dispatchAction('prop', {disabled: false});
       }
-
-      this.$orgs['.button--restart'].dispatchAction('prop', {disabled: false});
     });
+
     this.$orgs['.button--run-pause'].on('mouseleave', () => {
       this.$orgs['.button--run-pause'].dispatchAction('blur');
     });
-    this.$orgs['.button--step'].on('click', () => {
+
+    this.$orgs['.button--step'].on('click', async () => {
       this.renderIntervalAdjusted = this.renderInterval;
       this.turnIntervalAdjusted = this.turnInterval;
 
@@ -129,11 +163,13 @@ export default class Simulation {
 
       this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
       this.$orgs.body.dispatchAction('addClass', 'transition-slow');
-      this.turn(true);
       this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': 'none'});
       this.$orgs['.button--restart'].dispatchAction('prop', {disabled: false});
 
-      setTimeout(() => {
+      await this.turn(true);
+      this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': ''});
+
+      if (this.speed !== null) {
         this.renderIntervalAdjusted = (50 - this.speed) * this.renderMultiplier;
         this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
 
@@ -144,20 +180,22 @@ export default class Simulation {
         else if (this.speed > 25) {
           this.$orgs.body.dispatchAction('removeClass', 'transition-slow');
         }
-
-        this.$orgs['.button--step'].dispatchAction('css', {'pointer-events': ''});
-      }, this.turnInterval);
+      }
     });
+
     this.$orgs['.button--step'].on('mouseleave', () => {
       this.$orgs['.button--step'].dispatchAction('blur');
     });
+
     this.$orgs['.button--restart'].on('click', () => {
       this.$orgs['.button--restart'].dispatchAction('prop', {disabled: true});
       this.restart();
     });
+
     this.$orgs['.button--restart'].on('mouseleave', () => {
       this.$orgs['.button--restart'].dispatchAction('blur');
     });
+
     this.$orgs['.grid__article'].on('scroll', debounce(() => {
       const gridArticleState = this.$orgs['.grid__article'].getState();
 
@@ -173,54 +211,29 @@ export default class Simulation {
       simulationInst.$orgs['.slider--risk'].dispatchAction('val', this.value);
       document.cookie = `risk=${this.value};sameSite=strict`;
     });
+
     this.$orgs['.slider--risk'].on('change', function () {
       simulationInst.$orgs['.select--risk'].dispatchAction('val', this.value);
       simulationInst.$orgs['.display--risk'].dispatchAction('text', `${this.value}%`)
       document.cookie = `risk=${this.value};sameSite=strict`;
     });
+
     this.$orgs['.slider--speed'].on('change', function () {
       simulationInst.$orgs['.slider--speed'].dispatchAction('val', this.value);
       document.cookie = `speed=${this.value};sameSite=strict`;
     });
+
     this.$orgs['.stats__player'].on('mouseenter', function () {
       const playerId = '.player--' + this.dataset.idx;
 
       simulationInst.$orgs[playerId].dispatchAction('addClass', 'focused');
     });
+
     this.$orgs['.stats__player'].on('mouseleave', function () {
       const playerId = '.player--' + this.dataset.idx;
 
       simulationInst.$orgs[playerId].dispatchAction('removeClass', 'focused');
     });
-
-    let cookieRisk;
-
-    try {
-      cookieRisk = document.cookie.split('; ')
-        .find(row => row.startsWith('risk='))
-        .split('=')[1];
-    }
-    catch {}
-
-    if (cookieRisk) {
-      // If the cookie is set, update the select and slider but leave this.risk set to null when initializing the page.
-      this.$orgs['.select--risk'].dispatchAction('val', cookieRisk);
-      this.$orgs['.display--risk'].dispatchAction('text', `${cookieRisk}%`)
-      this.$orgs['.slider--risk'].dispatchAction('val', cookieRisk);
-    }
-
-    let cookieSpeed;
-
-    try {
-      cookieSpeed = document.cookie.split('; ')
-        .find(row => row.startsWith('speed='))
-        .split('=')[1];
-    }
-    catch {}
-
-    if (cookieSpeed) {
-      this.$orgs['.slider--speed'].dispatchAction('val', cookieSpeed);
-    }
   }
 
   /*** @private */
@@ -561,6 +574,35 @@ export default class Simulation {
   }
 
   init() {
+    let cookieRisk;
+
+    try {
+      cookieRisk = document.cookie.split('; ')
+        .find(row => row.startsWith('risk='))
+        .split('=')[1];
+    }
+    catch {}
+
+    if (cookieRisk) {
+      // If the cookie is set, update the select and slider but leave this.risk set to null when initializing the page.
+      this.$orgs['.select--risk'].dispatchAction('val', cookieRisk);
+      this.$orgs['.display--risk'].dispatchAction('text', `${cookieRisk}%`)
+      this.$orgs['.slider--risk'].dispatchAction('val', cookieRisk);
+    }
+
+    let cookieSpeed;
+
+    try {
+      cookieSpeed = document.cookie.split('; ')
+        .find(row => row.startsWith('speed='))
+        .split('=')[1];
+    }
+    catch {}
+
+    if (cookieSpeed) {
+      this.$orgs['.slider--speed'].dispatchAction('val', cookieSpeed);
+    }
+
     this.$orgs.body.dispatchAction('addClass', 'initialized');
     this.stoke();
     this.populateMatrix();
@@ -911,7 +953,7 @@ export default class Simulation {
 
     if (!snowflakeHasIncompleteMemory && !matrixData.riskIntroduced && this.risk) {
       this.$orgs['.matrix'].dispatchAction('data', {riskIntroduced: true});
-      this.consoleMessage('<p>Engagement risk introduced!</p>');
+      this.consoleMessage('<p>Engagement risk introduced</p>');
     }
   }
 
@@ -1214,10 +1256,8 @@ export default class Simulation {
           this.$orgs.body.dispatchAction('addClass', 'transition-medium');
         }
 
-        if (this.speed === 50) {
-          await this.turn();
-        }
-        else {
+        // Take an immediate turn, with the next to follow the setInterval interval.
+        if (this.speed !== 50) {
           this.semaphoreLocked = true;
 
           this.turn().then(() => {
