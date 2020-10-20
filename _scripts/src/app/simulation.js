@@ -38,7 +38,6 @@ export default class Simulation {
     this.teamKeys = ['karen', 'maga', 'snowflake'];
     this.teams = {};
     this.turnIntervalAdjusted = this.turnInterval;
-    this.turnsTaken = 0;
     this.vonNeumannKeys = [{x: -1, y: 0}, {x: 0, y: -1}, {x: 0, y: 1}, {x: 1, y: 0}];
   }
 
@@ -84,13 +83,6 @@ export default class Simulation {
           document.cookie = `risk=${selectRiskVal};sameSite=strict`;
         }
 
-        const sliderSpeedVal = this.$orgs['.slider--speed'].getState().val;
-
-        if (this.speed !== sliderSpeedVal) {
-          this.speed = parseFloat(sliderSpeedVal);
-          document.cookie = `speed=${sliderSpeedVal};sameSite=strict`;
-        }
-
         this.run();
         this.$orgs['.button--run-pause']
           .dispatchAction('removeClass', 'button--run')
@@ -133,13 +125,6 @@ export default class Simulation {
       if (this.risk !== selectRiskVal) {
         this.risk = parseFloat(selectRiskVal) * 0.01;
         document.cookie = `risk=${selectRiskVal};sameSite=strict`;
-      }
-
-      const sliderSpeedVal = this.$orgs['.slider--speed'].getState().val;
-
-      if (this.speed !== sliderSpeedVal) {
-        this.speed = parseFloat(sliderSpeedVal);
-        document.cookie = `speed=${sliderSpeedVal};sameSite=strict`;
       }
 
       this.$orgs.body.dispatchAction('removeClass', 'transition-medium');
@@ -208,33 +193,33 @@ export default class Simulation {
       simulationInst.$orgs[playerId].dispatchAction('removeClass', 'focused');
     });
 
-    let riskCookie;
+    let cookieRisk;
 
     try {
-      riskCookie = document.cookie.split('; ')
+      cookieRisk = document.cookie.split('; ')
         .find(row => row.startsWith('risk='))
         .split('=')[1];
     }
     catch {}
 
-    if (riskCookie) {
+    if (cookieRisk) {
       // If the cookie is set, update the select and slider but leave this.risk set to null when initializing the page.
-      this.$orgs['.select--risk'].dispatchAction('val', riskCookie);
-      this.$orgs['.display--risk'].dispatchAction('text', `${riskCookie}%`)
-      this.$orgs['.slider--risk'].dispatchAction('val', riskCookie);
+      this.$orgs['.select--risk'].dispatchAction('val', cookieRisk);
+      this.$orgs['.display--risk'].dispatchAction('text', `${cookieRisk}%`)
+      this.$orgs['.slider--risk'].dispatchAction('val', cookieRisk);
     }
 
-    let speedCookie;
+    let cookieSpeed;
 
     try {
-      speedCookie = document.cookie.split('; ')
+      cookieSpeed = document.cookie.split('; ')
         .find(row => row.startsWith('speed='))
         .split('=')[1];
     }
     catch {}
 
-    if (speedCookie) {
-      this.$orgs['.slider--speed'].dispatchAction('val', speedCookie);
+    if (cookieSpeed) {
+      this.$orgs['.slider--speed'].dispatchAction('val', cookieSpeed);
     }
   }
 
@@ -472,8 +457,6 @@ export default class Simulation {
       }
     }
 
-    this.turnsTaken = 0;
-
     this.$orgs['.matrix'].dispatchAction(
       'data',
       {
@@ -482,7 +465,7 @@ export default class Simulation {
         maxPointsReached: false,
         populationAlive: this.population,
         riskIntroduced: false,
-        turnsTaken: this.turnsTaken
+        turnsTaken: 0
       }
     );
   }
@@ -1036,9 +1019,7 @@ export default class Simulation {
       }
     }
 
-    this.turnsTaken++;
-
-    this.$orgs['.matrix'].dispatchAction('data', {matrix, populationAlive, turnsTaken: this.turnsTaken});
+    this.$orgs['.matrix'].dispatchAction('data', {matrix, populationAlive, turnsTaken: matrixData.turnsTaken + 1});
 
     // Must recalculate cooperatorAlive in case they all died within the last loop.
     cooperatorAlive = false;
@@ -1081,9 +1062,18 @@ export default class Simulation {
 
     // Check and see if speed has been changed.
     const sliderSpeed = parseFloat(this.$orgs['.slider--speed'].getState().val) || 0;
+    let cookieSpeed;
 
-    if (!step && this.speed !== sliderSpeed) {
+    try {
+      cookieSpeed = document.cookie.split('; ')
+        .find(row => row.startsWith('speed='))
+        .split('=')[1];
+    }
+    catch {}
+
+    if (!step && (sliderSpeed !== this.speed || sliderSpeed !== parseFloat(cookieSpeed))) {
       this.speed = sliderSpeed;
+      document.cookie = `speed=${sliderSpeed};sameSite=strict`;
       this.renderIntervalAdjusted = (50 - this.speed) * this.renderMultiplier;
       this.turnIntervalAdjusted = this.renderIntervalAdjusted * this.renderMultiplier;
 
@@ -1224,7 +1214,16 @@ export default class Simulation {
           this.$orgs.body.dispatchAction('addClass', 'transition-medium');
         }
 
-        await this.turn();
+        if (this.speed === 50) {
+          await this.turn();
+        }
+        else {
+          this.semaphoreLocked = true;
+
+          this.turn().then(() => {
+            this.semaphoreLocked = false;
+          });
+        }
       }
 
       if (this.speed === 50) {
