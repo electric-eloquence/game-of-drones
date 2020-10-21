@@ -23,12 +23,12 @@ There are four teams of players in Game of Drones. Each player starts the game w
 
 * Snowflakes: play Tit-for-Tat
 * Karens: always defect
-* Magas: always cooperate with their own and with the Donald, defect against everyone else
+* Magas: always cooperate with other Magas and the Donald; defect against everyone else
 * the Donald: always defect
 
 Game of Drones adds some aspects beyond the Prisoner's Dilemma: engagement risk and death. Engagement risk threatens a loss of 1 point per player during engagements. The probability is determined by a user-selected percentage figure. Death occurs when points go to 0.
 
-Snowflakes are at a disadvantage early on, as their niceness leads to a much greater initial point loss than for other teams. To give Snowflakes a fighting chance, engagement risk is introduced after all Snowflakes have acquired a memory of how the other players played.
+Snowflakes are at a disadvantage early on, as their niceness leads to a much greater initial point loss than for other teams. To give Snowflakes a fighting chance, engagement risk is introduced only after all Snowflakes have acquired a memory of how the other players played.
 
 Karens start out immune to engagement risk. They only suffer risk after all cooperators have died, cooperators being Snowflakes and Magas. This takes the shape of an inverse (perverse) karma where those who produce die so that those who only consume may live.
 
