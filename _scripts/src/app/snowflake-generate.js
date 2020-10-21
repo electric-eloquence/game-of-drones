@@ -114,7 +114,6 @@ export default function (color, width) {
     const r = Math.random();
     let iterations;
 
-
     if (recursionLevel === 1 || recursionLevel === 2) {
       iterations = maxIterations * 0.5;
       iterations += r * maxIterations * 0.5;
