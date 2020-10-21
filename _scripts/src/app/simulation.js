@@ -419,7 +419,7 @@ export default class Simulation {
           (resolve) => {
             setTimeout(() => {
               this.$orgs['.matrix__cover'].dispatchAction('addClass', 'reveal');
-              this.consoleMessages('<p>There are no winners</p>');
+              this.consoleMessage('<p>There are no winners</p>');
 
               resolve();
             }, this.renderInterval);
