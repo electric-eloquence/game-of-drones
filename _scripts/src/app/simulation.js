@@ -944,7 +944,7 @@ export default class Simulation {
 
           setTimeout(() => {
             this.$orgs['.stats__player--' + i + '__memory']
-              .dispatchAction('text', memoryStatus + '%')
+              .dispatchAction('text', `${memoryStatus}%`)
               .dispatchAction('addClass', 'fade--in');
           }, this.renderIntervalAdjusted);
         }
@@ -1274,7 +1274,11 @@ export default class Simulation {
         }
 
         while (this.intervalId) {
+          this.semaphoreLocked = true;
+
           await this.turn();
+
+          this.semaphoreLocked = false;
         }
       }
       else {
