@@ -8,3 +8,4 @@ node_modules/
 !/node_modules/requerio/
 /node_modules/requerio/*
 !/node_modules/requerio/dist
+/to-diff.md
